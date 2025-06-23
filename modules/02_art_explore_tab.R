@@ -77,11 +77,59 @@ exploreUI <- function(id) {
 exploreServer <- function(id) {
   moduleServer(id, function(input, output, session) {
   
+
+  ## Update dropdown menus
+  ### Create reactive of DF
+  df_artist <- reactive({
+    df_artist_info
+    #note: later replace with connection to API
+  })
+
+
+  observeEvent(input$sel_movement, {
+    req(input$sel_movement)
+    df_filt <- filter(df_artist(), movement==input$sel_movement)
+      
+    vec_natl_update <- unique(df_filt$nationality)
+
+    vec_artist1_update <- unique(df_filt$artist)
+
+    updateSelectInput(session,
+                      'sel_movement',
+                      selected=input$sel_movement
+    )
+
+    updateSelectInput(session,
+                      'sel_nationality',
+                      choices=c("Select one"="", vec_natl_update)
+    )
+
+    updateSelectInput(session,
+                      'sel_artist',
+                      choices=c("Select one"="", vec_artist1_update)
+    )
+  })
+
+  observeEvent(input$sel_nationality, {
+    req(input$sel_nationality)
+    df_filt <- filter(df_artist(), nationality==input$sel_nationality)
+
+    vec_artist2_update <- unique(df_filt$artist)
+
+
+    updateSelectInput(session,
+                      'sel_nationality',
+                      selected=input$nationality
+    )
+
+    updateSelectInput(session,
+                      'sel_artist',
+                      choices=c("Select one"="", vec_artist2_update)
+    )
+  })
+
+  
   ## Artist Name
-  ### Create reactive
-    
-    
-    
   ### Render output
   output$out_txt_artist <- renderText({
     input$sel_artist %>%
@@ -114,6 +162,7 @@ exploreServer <- function(id) {
   
   ## Artworks
   output$carousel_sample <- renderSlickR({
+    req(input$sel_artist)
     # Provide image URLs or file paths
     imgs <- list(
       img(src = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Shaki_waterfall.jpg/640px-Shaki_waterfall.jpg", height = "300px"),

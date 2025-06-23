@@ -41,48 +41,25 @@ gameUI <- function(id) {
     br(),
     hr(),
     
-    ## First row of artwork
-    # fluidRow(
-    #   1:3 %>%
-    #     purrr::map(build_q_a_block)
-    # ),
+    ## Artwork, choices, and answer response
     fluidRow(
-      build_q_a_block(id, n=1)
+      column(1),
+      1:5 %>%
+        purrr::map(build_q_a_block, id=id),
+      column(1)
     ),
     
+    br(),
     
-    # fluidRow(
-    #   column(4,
-    #     imageOutput(ns("out_img_art1")),
-    #     uiOutput(ns("ui_answer_art1")),
-    #     textOutput(ns("txt_answer_msg_art1"))
-    #   ),
-    #   column(4,
-    #     imageOutput(ns("out_img_art2")),
-    #     uiOutput(ns("ui_answer_art2"))
-    #   ),
-    #   column(4,
-    #     imageOutput(ns("out_img_art3"))
-    #   )
-    # ),
-    
-    ## Second row of artwork + submit button
+    ## Submit answers
     fluidRow(
-      column(4,
-        imageOutput(ns("out_img_art4"))
-      ),
-      column(4,
-        imageOutput(ns("out_img_art5"))
-      ),
-      column(2),
+      column(5),
       column(2,
-        #this shouldn't display until all answers are made
-        # uiOutput(ns("ui_btn_answers"), "Submit")
-        actionButton(ns("btn_answers"), "Submit")
-      )
+        uiOutput(ns("ui_btn_submit_art"))
+      ),
+      column(5)
     )
   )
-  
 }
 
 
@@ -91,16 +68,58 @@ gameUI <- function(id) {
 gameServer <- function(id) {
   moduleServer(id, function(input, output, session) {
   
-    ## Conditionally display response UI
+    ## Conditionally display answer (choices) UI
+    observeEvent(input$btn_diff, {
+        1:5 %>%
+          purrr::map(function(x) {
+            #create outputs and inputs
+            nm_output_answer <- paste0("ui_answer_art", x)
+          
+            #easy and normal cases
+            if(input$sldT_diff %in% c("easy", "normal")) {
+              nm_input_rad <- paste0("rad_answer_art", x)
+              
+              vec_artist_choices <- if(input$sldT_diff=="easy") {
+                vec_artists
+              } else if(input$sldT_diff=="normal"){
+                vec_artists[1:3]
+              }
+              #radio button input
+              output[[nm_output_answer]] <- renderUI({
+                radioButtons(nm_input_rad, 
+                             "Choose artist",
+                             choices=vec_artist_choices,
+                             selected=character(0)
+                )
+              })
+              #hard case
+              } else if(input$sldT_diff=="hard"){
+                nm_input_txt <- paste0("txt_answer_art", x)
+              
+                #text input
+                output[[nm_output_answer]] <- renderUI({
+                  textInput(nm_input_txt,
+                            "Enter artist's name")
+                })
+              }
+          })
+    })
+    
     
     
     ## Conditionally display answer submit button
-    # observeEvent({input$} , {
-    #   output$ui_btn_answers <- renderUI({
-    # 
-    #   })
-    # })
+    observeEvent(input$ui_answer_art1, {
+      output$ui_btn_submit_art <- renderUI({
+        actionButton("btn_submit_art", "Submit answers")
+      })
+    })
     
+    
+    ## Evaluate whether answers are correct
+    ### Display number correct below submit button
+    
+    
+    ### Display correct/incorrect below each response/artwork
     
   })
 }
