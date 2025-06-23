@@ -28,7 +28,7 @@ txt_game2 <- "Difficulty level affects the response type, number of options, and
 
 # Artist Info
 #NOTE: will replace with dynamic version
-
+## DF for selectors (tab 2)
 df_artist_info <- tribble(
   ~movement, ~nationality, ~artist, 
   "Impressionism", "Dutch", "Van Gogh, Vincent",
@@ -40,4 +40,14 @@ df_artist_info <- tribble(
   "Cubism", "Spanish", "Dalí, Salvador",
   "Surrealism", "Spanish", "Dalí, Salvador"
 )
+
+
+## Choices for game (will change later)
+vec_artists <- c("Van Gogh", "Monet", "Dalí", "Picasso", "Manet")
+
+
+
+
+
+
   

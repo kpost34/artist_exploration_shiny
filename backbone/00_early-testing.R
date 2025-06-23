@@ -118,7 +118,7 @@ if(status_code(search_response) == 200) {
 
 
 ## Results of search
-length(image_list)
+length(image_list) #5 Van Gogh paintings
 image_list[[1]]
 metadata_list[[1]]
 
@@ -166,12 +166,12 @@ search_paintings <- function(nationality, public=NULL) {
 
 
 ## Example: Find paintings by NA and European artists
-north_american_artworks <- search_paintings("North America") #8869
-european_artworks <- search_paintings("Europe") #12,374
+north_american_artworks <- search_paintings("North America") #8869 (as of 6/15/25)
+european_artworks <- search_paintings("Europe") #12,418 (as of 6/15/25)
 
 #combine the results (if you want to combine them)
 all_object_ids <- c(north_american_artworks, european_artworks)
-print(paste("Total paintings found:", length(all_object_ids))) #21,243
+print(paste("Total paintings found:", length(all_object_ids))) #21,314 (as of 6/15/25)
 
 
 ## Here's a breakdown of artworks based on continent and domain (separate search)

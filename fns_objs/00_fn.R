@@ -46,15 +46,16 @@ build_q_a_block <- function(id, n) {
   ns <- NS(id)
   
   # Create names
-  n <- 1
   nm_root <- c("out_img_art", "ui_answer_art", "txt_answer_msg_art")
   nm <- paste0(nm_root, n)
   names(nm) <- c("image", "answer", "message")
   
   # Build UI block
   tagList(
-    column(4,
-      imageOutput(ns(nm["image"])),
+    column(2,
+      imageOutput(ns(nm["image"]),
+                  height="250px", 
+                  width="250px"),
       uiOutput(ns(nm["answer"])),
       textOutput(ns(nm["message"]))
     )

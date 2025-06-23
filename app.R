@@ -36,8 +36,8 @@ artistExplorationApp <- function() {
         }
         
         .page-wrapper {
-          margin-left: 8%;
-          margin-right: 8%;
+          margin-left: 5%;
+          margin-right: 5%;
         }
       "))
     ),
