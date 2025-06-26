@@ -57,7 +57,7 @@ build_q_a_block <- function(id, n) {
                   height="250px", 
                   width="250px"),
       uiOutput(ns(nm["answer"])),
-      textOutput(ns(nm["message"]))
+      strong(textOutput(ns(nm["message"])))
     )
   )
 }
