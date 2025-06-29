@@ -50,7 +50,10 @@ exploreUI <- function(id) {
     
     ## Outputs
     fluidRow(
-        h3(strong(textOutput(ns("out_txt_artist"))))
+        h3(strong(textOutput(ns("out_txt_artist")))),
+        p(textOutput(ns("out_txt_bio"))),
+        tags$p(textOutput(ns("out_txt_citation")),
+          style = "font-size: 0.8em; color: gray; font-style: italic;")
     ),
     fluidRow(
       column(3,
@@ -137,6 +140,28 @@ exploreServer <- function(id) {
       rev() %>%
       paste(collapse=" ")
   })
+  
+  
+  ## Artist bio
+  ### Create reactive
+  txt_bio <- reactive({
+    req(input$sel_artist)
+    df_artist_bios %>%
+      filter(artist==input$sel_artist) %>%
+      pull(bio)
+  })
+  
+  
+  ### Render output
+  output$out_txt_bio <- renderText({
+    txt_bio()
+  })
+  
+  output$out_txt_citation <- renderText({
+    req(input$sel_artist)
+    "Bio generated with the assistance of ChatGPT (OpenAI, 2025)."
+  })
+  
     
     
     
@@ -152,12 +177,6 @@ exploreServer <- function(id) {
   #   list(src = file_path,
   #        alt = "Uploaded Image")
   # }, deleteFile = FALSE)
-  
-    
-  ## Artist bio
-  output$txt_bio <- renderText({
-    "Artist bio goes here"
-  })
   
   
   ## Artworks

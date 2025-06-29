@@ -1,5 +1,6 @@
 # Functions for Artist Exploration App #
 
+# Backbone/Model-Building Functions=================================================================
 ## Define a function to perform the search for each nationality
 search_paintings <- function(nationality, public=NULL) {
   
@@ -40,6 +41,8 @@ search_paintings <- function(nationality, public=NULL) {
 }
 
 
+
+# App-related Functions=============================================================================
 ## Function for building game tab of UI
 build_q_a_block <- function(id, n) {
   # Create ns

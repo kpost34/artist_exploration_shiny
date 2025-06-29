@@ -42,6 +42,35 @@ df_artist_info <- tribble(
 )
 
 
+## Bios
+### Individual
+bio_dali <- "Dali bio"
+
+
+bio_vangogh <- "Van gogh bio"
+
+
+bio_monet <- "Monet bio"
+
+
+bio_manet <- "Manet bio"
+
+
+bio_picasso <- "Picasso bio"
+
+
+### Compile into DF
+df_artist_bios <- tibble(
+  artist=c("Dalí, Salvador", "Van Gogh, Vincent", "Monet, Claude", "Manet, Édouard", "Picasso, Pablo"),
+  bio=c(bio_dali, bio_vangogh, bio_monet, bio_manet, bio_picasso)
+)
+
+df_artist_bios
+
+
+
+
+
 ## Choices for game (will change later)
 vec_artists <- c("Van Gogh", "Monet", "Dalí", "Picasso", "Manet")
 
