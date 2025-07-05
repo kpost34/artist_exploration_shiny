@@ -33,48 +33,6 @@ vec_art_objs <- purrr::map(natls, search_paintings) %>%
 
 ## Step 2: Retain object IDs that have valid URLs and non-null values for artist name and artwork
   #(first to see if there's enough art to train a model for both)
-
-validate_obj_id <- function(object_id){
-  search_url <- "https://collectionapi.metmuseum.org/public/collection/v1/objects/"
-  tryCatch({
-    # Fetch object details using the object ID
-    object_url <- paste0(search_url, object_id)
-    object_response <- GET(object_url)
-  
-    # Check if the response was successful
-    if(status_code(object_response) == 200) {
-      object_data <- fromJSON(content(object_response, as = "text"))
-  
-      # Extract metadata
-      title <- object_data$title
-      artist <- object_data$artistDisplayName
-      image_url <- object_data$primaryImage
-      
-      # Escape condition
-      if(is.null(title)|nchar(title)==0|is.null(artist)|nchar(artist)==0|is.null(image_url)){
-        print(paste("Failed to fetch data for object ID:", object_id))
-        return(NA_integer_)
-      } else{
-        return(object_id)
-      }
-    } else{
-      print(paste("HTTP error for object ID:", object_id, "- Status code:", status_code(object_response)))
-      return(NA_integer_) # Added this return statement
-    }
-  },
-  error = function(e) {
-    print(paste("Error processing object ID:", object_id, "-",
-                e$message))
-    return(NA_integer_)
-  },
-  warning = function(w) {
-    print(paste("Warning processing object ID:", object_id, "-", w$message))
-    return(NA_integer_)
-  })
-  
-}
-
-
 ## Run function
 obj <- vec_art_objs[1]
 
@@ -86,47 +44,6 @@ valid_obj_id <- purrr:::map_int(vec_art_objs[1:1000], validate_obj_id) %>%
 
 # Get information associated with an object ID
 ## Define the search URL for the Metropolitan Museum API
-search_url <- "https://collectionapi.metmuseum.org/public/collection/v1/objects/"
-
-## Function to get metadata and image URL for each object ID
-get_artwork_info <- function(object_id) {
-  tryCatch({
-    # Fetch object details using the object ID
-    object_url <- paste0(search_url, object_id)
-    object_response <- GET(object_url)
-  
-    # Check if the response was successful
-    if(status_code(object_response) == 200) {
-      object_data <- fromJSON(content(object_response, as = "text"))
-  
-      # Extract metadata
-      title <- object_data$title
-      artist <- object_data$artistDisplayName
-      image_url <- object_data$primaryImage
-      
-      # Escape condition
-      if(is.null(title)|nchar(title)==0|is.null(artist)|nchar(artist)==0|is.null(image_url)){
-        print(paste("Failed to fetch data for object ID:", object_id))
-        # return(NULL)
-      } else{
-        data <- list(title = title, artist = artist, image_url = image_url)
-        return(data)
-        
-      }
-    }
-  },
-  error = function(e) {
-    print(paste("Error processing object ID:", object_id, "-",
-                e$message))
-    # return(NULL)
-  },
-  warning = function(w) {
-    print(paste("Warning processing object ID:", object_id, "-", w$message))
-    # return(NULL)
-  })
-}
-
-
 obj1 <- vec_art_objs[1]
 
 get_artwork_info(vec_art_objs[20])
@@ -135,15 +52,6 @@ vec_art_info <- purrr::map(vec_art_objs, get_artwork_info)
 
 
 
-
-
-
-
-
-
-
-
-# 
 # 2. Image Preprocessing with magick================================================================
 # Goal: Prepare the images for ML by resizing, normalizing, or augmenting them.
 # Image Manipulation Tasks:

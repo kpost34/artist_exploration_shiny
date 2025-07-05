@@ -11,19 +11,20 @@ url <- "https://collectionapi.metmuseum.org/public/collection/v1/objects"
 
 
 ## Make the GET request
-response <- GET(url)
+response <- GET(url, add_headers("User-Agent" = "R-client/1.0"))
 
 
 ## Check if the request was successful
 if (status_code(response) == 200) {
-  #parse the response content
   content <- content(response, as = "text", encoding = "UTF-8")
   data <- fromJSON(content)
-  #print the first few results
-  print(list(total=data[[1]], objectIDs=data[[2]][1:10]))
+  print(list(total = data$total, objectIDs = data$objectIDs[1:10]))
 } else {
   print(paste("Request failed with status:", status_code(response)))
 }
+
+
+
 
 
 
