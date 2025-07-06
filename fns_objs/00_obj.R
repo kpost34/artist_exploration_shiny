@@ -35,11 +35,12 @@ df_artist_info <- tribble(
   "Impressionism", "French", "Monet, Claude",
   "Cubism", "Spanish", "Picasso, Pablo",
   "Surrealism", "Spanish", "Picasso, Pablo",
-  "Realism", "French", "Manet, Édouard",
-  "Impressionism", "French", "Manet, Édouard",
+  "Realism", "French", "Manet, Edouard",
+  "Impressionism", "French", "Manet, Edouard",
   "Cubism", "Spanish", "Dalí, Salvador",
   "Surrealism", "Spanish", "Dalí, Salvador"
-)
+) %>%
+  mutate(artist_simple=convert_artist_name(artist))
 
 
 ## Bios
@@ -61,14 +62,26 @@ bio_picasso <- "Picasso bio"
 
 ### Compile into DF
 df_artist_bios <- tibble(
-  artist=c("Dalí, Salvador", "Van Gogh, Vincent", "Monet, Claude", "Manet, Édouard", "Picasso, Pablo"),
+  artist=c("Dalí, Salvador", "Van Gogh, Vincent", "Monet, Claude", "Manet, Edouard", "Picasso, Pablo"),
   bio=c(bio_dali, bio_vangogh, bio_monet, bio_manet, bio_picasso)
-)
-
-df_artist_bios
-
+) %>%
+  mutate(artist_simple=convert_artist_name(artist))
 
 
+
+
+### Join artist info and bios with art info for complete df
+#### Read in art info (for public domain art)
+fp_art_explore <- here("data", "02_art-exploration.rds")
+df_art_info <- readRDS(fp_art_explore)
+
+
+#### Execute joins
+df_art_info_full <- df_artist_info %>%
+  left_join(df_artist_bios) %>%
+  left_join(df_art_info)
+
+df_art_info_full
 
 
 ## Choices for game (will change later)
