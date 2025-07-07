@@ -83,15 +83,18 @@ exploreServer <- function(id) {
 
   ## Update dropdown menus
   ### Create reactive of DF
-  df_artist <- reactive({
-    df_artist_info
-    #note: later replace with connection to API
+  df_art <- reactive({
+    df_art_info_full
   })
+  # df_artist <- reactive({
+  #   df_artist_info
+  #   #note: later replace with connection to API
+  # })
 
 
   observeEvent(input$sel_movement, {
     req(input$sel_movement)
-    df_filt <- filter(df_artist(), movement==input$sel_movement)
+    df_filt <- filter(df_art(), movement==input$sel_movement)
       
     vec_natl_update <- unique(df_filt$nationality)
 
@@ -115,7 +118,7 @@ exploreServer <- function(id) {
 
   observeEvent(input$sel_nationality, {
     req(input$sel_nationality)
-    df_filt <- filter(df_artist(), nationality==input$sel_nationality)
+    df_filt <- filter(df_art(), nationality==input$sel_nationality)
 
     vec_artist2_update <- unique(df_filt$artist)
 
@@ -135,10 +138,7 @@ exploreServer <- function(id) {
   ## Artist Name
   ### Render output
   output$out_txt_artist <- renderText({
-    input$sel_artist %>%
-      str_split_1(pattern=", ") %>%
-      rev() %>%
-      paste(collapse=" ")
+    format_name(input$sel_artist)
   })
   
   
@@ -146,9 +146,10 @@ exploreServer <- function(id) {
   ### Create reactive
   txt_bio <- reactive({
     req(input$sel_artist)
-    df_artist_bios %>%
+    df_art() %>%
       filter(artist==input$sel_artist) %>%
-      pull(bio)
+      pull(bio) %>%
+      unique()
   })
   
   
