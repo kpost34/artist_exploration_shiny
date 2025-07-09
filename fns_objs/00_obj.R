@@ -1,6 +1,6 @@
 # Objects for Artist Exploration App #
 
-# Strings
+# Instructions======================================================================================
 ## Classify art
 txt_classify1 <- "Click 'Browse', choose a file from your machine, click Open, and the algorithm
         will identify the top X artists. Adjust X via the slider and enable percent confidence
@@ -12,7 +12,7 @@ txt_classify2 <- "Remember that this algorithm is trained on North American
 
 ## Artist exploration
 txt_explore <- "Choose an artist either directly or by filtering with the movement and nationality
-                selectors. Once selected, a photograph, bio, and selection of their artwork
+                selectors. Once selected, a bio and selection of their artwork
                 will be displayed."
 
 
@@ -26,47 +26,62 @@ txt_game2 <- "Difficulty level affects the response type, number of options, and
               of the machine learning model."
 
 
-# Artist Info
-#NOTE: will replace with dynamic version
+
+# Artist Info=======================================================================================
 ## DF for selectors (tab 2)
 df_artist_info <- tribble(
   ~movement, ~nationality, ~artist, 
-  "Impressionism", "Dutch", "Van Gogh, Vincent",
-  "Impressionism", "French", "Monet, Claude",
-  "Cubism", "Spanish", "Picasso, Pablo",
-  "Surrealism", "Spanish", "Picasso, Pablo",
   "Realism", "French", "Manet, Edouard",
   "Impressionism", "French", "Manet, Edouard",
-  "Cubism", "Spanish", "Dalí, Salvador",
-  "Surrealism", "Spanish", "Dalí, Salvador"
+  "Impressionism", "Dutch", "van Gogh, Vincent",
+  "Impressionism", "French", "Degas, Edgar",
+  "Baroque", "Dutch", "van Rijn, Rembrandt",
+  "Post-impressionism", "French", "Gaugun, Paul",
+  "Symbolism", "French", "Gauguin, Paul",
+  "Impressionism", "French", "Cézanne, Paul",
+  "Post-impressionism", "French", "Cézanne, Paul",
+  "Spanish Rennaissance", "Greek", "Theotokopoulos, Domenikos",
+  "Rococo", "Italian", "Tiepolo, Giovanni Battista",
+
 ) %>%
   mutate(artist_simple=convert_artist_name(artist))
 
 
 ## Bios
 ### Individual
-bio_dali <- "Dali bio"
+bio_manet <- "Manet bio"
 
 
 bio_vangogh <- "Van gogh bio"
 
 
-bio_monet <- "Monet bio"
+bio_degas <- "Degas bio"
 
 
-bio_manet <- "Manet bio"
+bio_rembrandt <- "Rembrandt bio"
 
 
-bio_picasso <- "Picasso bio"
+bio_gauguin <- "Gauguin bio"
+
+
+bio_cezanne <- "Cezanne bio"
+
+
+bio_theo <- "Theotokopoulos bio"
+
+
+bio_tiepolo <- "Tiepolo bio"
 
 
 ### Compile into DF
 df_artist_bios <- tibble(
-  artist=c("Dalí, Salvador", "Van Gogh, Vincent", "Monet, Claude", "Manet, Edouard", "Picasso, Pablo"),
-  bio=c(bio_dali, bio_vangogh, bio_monet, bio_manet, bio_picasso)
+  artist=c("Manet, Edouard", "van Gogh, Vincent", "Degas, Edgar", "van Rijn, Rembrandt", 
+           "Gauguin, Paul", "Cézanne, Paul", "Theotokopoulos, Domenikos", 
+           "Tiepolo, Giovanni Battista"),
+  bio=c(bio_manet, bio_vangogh, bio_degas, bio_rembrandt, bio_gauguin, bio_cezanne,
+        bio_theo, bio_tiepolo)
 ) %>%
   mutate(artist_simple=convert_artist_name(artist))
-
 
 
 

@@ -22,27 +22,49 @@ vec_art_objs <- purrr::map(natls, search_paintings, public=TRUE) %>%
 
 
 ### Apply function with delay, skipping invalid ones
-t_art_info <- map(vec_art_objs[1:10], function(obj_id) {
-  Sys.sleep(1 + runif(1, 0, 1))
-  get_artwork_info(obj_id)
-})
+
+
+t_art_info_full <- list()
+
+for(i in seq(1, 601, 50)){
+  t_art_info <- purrr::map(vec_art_objs[i:(i+49)], function(obj_id) {
+    Sys.sleep(1 + runif(1, 0, 1))
+    get_artwork_info(obj_id)
+  })
+  
+  Sys.sleep(30)
+  t_art_info_full <- c(t_art_info_full, t_art_info)
+    
+}
+
+
+# t_art_info <- purrr::map(vec_art_objs, function(obj_id) {
+#   Sys.sleep(1 + runif(1, 0, 1))
+#   get_artwork_info(obj_id)
+# })
 
 
 ### Filter out NULLs and combine
-df_art_info <- t_art_info %>%
+df_art_info <- t_art_info_full %>%
   compact() %>% #remove NULL entries
   bind_rows()
 
 
 ## Example
-url_art <- df_art_info[2,]$image_url
-image_read(url_art) %>% print()
+# url_art <- df_art_info[2,]$image_url
+# image_read(url_art) %>% print()
 
 
 
 ## Save DF
+rm(fp_art_explore)
 # saveRDS(df_art_info, fp_art_explore)
 
 
 
+### Find summary info of DF
+df_art_info %>%
+  count(artist_simple) %>%
+  arrange(desc(n)) %>%
+  filter(n>1) %>% View()
 
