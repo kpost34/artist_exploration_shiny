@@ -50,14 +50,13 @@ exploreUI <- function(id) {
     
     ## Outputs
     fluidRow(
-        h3(strong(textOutput(ns("out_txt_artist")))),
+      h3(strong(textOutput(ns("out_txt_artist")))),
+    ),
+    fluidRow(
+      column(4,
         p(textOutput(ns("out_txt_bio"))),
         tags$p(textOutput(ns("out_txt_citation")),
           style = "font-size: 0.8em; color: gray; font-style: italic;")
-    ),
-    fluidRow(
-      column(3,
-        imageOutput(ns("out_img_artist"))
       ),
       column(1),
       column(3,
