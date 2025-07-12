@@ -57,6 +57,7 @@ get_artwork_info <- function(object_id) {
 
     title <- obj_data$title
     artist <- obj_data$artistDisplayName
+    date <- obj_data$objectDate
     image_url <- obj_data$primaryImage
 
     if (is.null(title) || title == "" || is.null(artist) || artist == "" || is.null(image_url) || image_url == "") {
@@ -68,6 +69,7 @@ get_artwork_info <- function(object_id) {
       object_id = object_id,
       title = title,
       artist_simple = artist,
+      date = date,
       image_url = image_url
     )
   },
