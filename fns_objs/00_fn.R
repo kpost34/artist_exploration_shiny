@@ -42,7 +42,7 @@ search_paintings <- function(nationality, public=NULL) {
 
 
 ## Function to grab artist info if all info present
-get_artwork_info <- function(object_id) {
+get_artwork_info <- function(object_id, require_title=TRUE) {
   object_url <- paste0("https://collectionapi.metmuseum.org/public/collection/v1/objects/", object_id)
   
   tryCatch({
@@ -60,9 +60,16 @@ get_artwork_info <- function(object_id) {
     date <- obj_data$objectDate
     image_url <- obj_data$primaryImage
 
-    if (is.null(title) || title == "" || is.null(artist) || artist == "" || is.null(image_url) || image_url == "") {
-      message("Invalid data for object ID: ", object_id)
-      return(NULL)
+    if(require_title) {
+      if(is.null(title) || title == "" || is.null(artist) || artist == "" || is.null(image_url) || image_url == "") {
+        message("Invalid data for object ID: ", object_id)
+        return(NULL)
+      }
+    } else if(!require_title) {
+        if(is.null(artist) || artist == "" || is.null(image_url) || image_url == "") {
+          message("Invalid data for object ID: ", object_id)
+          return(NULL)
+        } 
     }
 
     tibble(
