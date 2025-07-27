@@ -8,33 +8,38 @@ pacman::p_load(here, httr, jsonlite, tidyverse, magick, slickR)
 
 source(here("fns_objs", "00_fn.R"))
 
-fp_art_explore <- here("data", "02_art-exploration.rds")
-fp_art_explore_new <- here("data", "02_art-exploration_new.rds")
-
 
 
 # Data Extraction===================================================================================
 ## Get artwork info
 ### Grab all relevant object IDs
-natls <- c("North America", "Europe")
-
-vec_art_objs <- purrr::map(natls, search_paintings, public=TRUE) %>%
-  unlist() 
+vec_art_objs <- search_paintings(nationality="Europe", public=TRUE) %>% unlist()
+length(vec_art_objs) #428
 
 
 ### Apply function with delay, skipping invalid ones
+#### Do in batches of 50 objects
 t_art_info_full <- list()
+n <- 1
 
-for(i in seq(1, 601, 50)){
+for(i in seq(1, 351, 50)){
   t_art_info <- purrr::map(vec_art_objs[i:(i+49)], function(obj_id) {
     Sys.sleep(1 + runif(1, 0, 1))
     get_artwork_info(obj_id)
   })
-  
   Sys.sleep(30)
   t_art_info_full <- c(t_art_info_full, t_art_info)
-    
+  print(paste("Batch", n, "Completed"))
+  n <- n + 1
 }
+
+
+#### Assess remainder (last 28 objects) & combine
+t_art_info2 <- purrr::map(vec_art_objs[401:428], function(obj_id) {
+  get_artwork_info(obj_id)
+})
+
+t_art_info_full <- c(t_art_info_full, t_art_info2)
 
 
 ### Filter out NULLs and combine
@@ -44,13 +49,14 @@ df_art_info <- t_art_info_full %>%
 
 
 ## Save DF
-# rm(fp_art_explore)
-# saveRDS(df_art_info, fp_art_explore_new)
+fn_art_explore <- paste0("02_art-exploration_", Sys.Date(), ".rds")
+fp_art_explore <- here("data", fn_art_explore)
+# saveRDS(df_art_info, fp_art_explore)
 
 
-### Find summary info of DF
+## Find summary info of DF
 df_art_info %>%
-  count(artist_simple) %>%
+  count(artist_simple, nationality) %>%
   arrange(desc(n)) %>%
   filter(n>1) %>% View()
 
@@ -58,7 +64,9 @@ df_art_info %>%
 
 # Test Grabbing and Rendering Picture===============================================================
 ## Load DF
-df_art_info <- readRDS(fp_art_explore_new)
+fp_art_explore <- list.files(here("data"), "^02_art-exploration", full.names=TRUE) %>% 
+  sort(decreasing=TRUE)
+df_art_info <- readRDS(fp_art_explore)
 
 
 ## Isolate image_url

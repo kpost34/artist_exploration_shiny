@@ -130,7 +130,7 @@ metadata_list[[1]]
 search_url <- "https://collectionapi.metmuseum.org/public/collection/v1/search"
 
 ## Define a function to perform the search for each nationality
-search_paintings <- function(nationality, public=NULL) {
+search_art <- function(nationality, public=NULL) {
   query <- list(
     q = "painting",                   #filter for paintings
     type = "Painting",                #specify the type to be "Painting"
@@ -167,8 +167,8 @@ search_paintings <- function(nationality, public=NULL) {
 
 
 ## Example: Find paintings by NA and European artists
-north_american_artworks <- search_paintings("North America") #8869 (as of 6/15/25)
-european_artworks <- search_paintings("Europe") #12,418 (as of 6/15/25)
+north_american_artworks <- search_art("North America") #8869 (as of 6/15/25)
+european_artworks <- search_art("Europe") #12,418 (as of 6/15/25)
 
 #combine the results (if you want to combine them)
 all_object_ids <- c(north_american_artworks, european_artworks)
@@ -177,7 +177,7 @@ print(paste("Total paintings found:", length(all_object_ids))) #21,314 (as of 6/
 
 ## Here's a breakdown of artworks based on continent and domain (separate search)
 c("North America", "Europe") %>%
-  purrr::map(search_paintings, public=TRUE) %>%
+  purrr::map(search_art, public=TRUE) %>%
   purrr::map(length) #97 and 558
 
 
@@ -188,7 +188,7 @@ search_url <- "https://collectionapi.metmuseum.org/public/collection/v1/objects/
 
 
 ## Function to get metadata and image URL for each object ID
-get_artwork_info <- function(object_id, show_art=FALSE) {
+grab_artwork_info <- function(object_id, show_art=FALSE) {
   tryCatch({
     # Fetch object details using the object ID
     object_url <- paste0(search_url, object_id)
@@ -233,7 +233,7 @@ get_artwork_info <- function(object_id, show_art=FALSE) {
 
 
 ## Loop through all object IDs and retrieve information
-all_object_info <- lapply(all_object_ids[21:25], function(id) get_artwork_info(id, show_art=TRUE))
+all_object_info <- lapply(all_object_ids[21:25], function(id) grab_artwork_info(id, show_art=TRUE))
 
 # Example: Display metadata and image for the first artwork in the list
 first_artwork <- all_object_info[[1]]

@@ -1,83 +1,90 @@
 # Functions for Artist Exploration App #
 
 # Backbone/Model-Building Functions=================================================================
-## Function to perform the search for each nationality
+## Function to perform the search by nationality
 search_paintings <- function(nationality, public=NULL) {
-  
   search_url <- "https://collectionapi.metmuseum.org/public/collection/v1/search"
-  
+
   query <- list(
-    q = "painting",                   #filter for paintings
-    type = "Painting",                #specify the type to be "Painting"
-    artistNationality = nationality,  #filter by specific nationality
-    artistRole = "Artist",             #filter for painters (artists)
-    isPublicDomain = public           #optional: Only include public domain artworks
+    q = "painting",
+    type = "painting",
+    artistNationality = nationality,
+    isPublicDomain = public
   )
-  
-  ## Make the API request with the specified query parameters
-  search_response <- GET(search_url, query = query)
-  
-  ## Check if the request was successful
-  if(status_code(search_response) == 200) {
-    #parse the response content
-    search_content <- content(search_response, as = "text", encoding = "UTF-8")
-    search_data <- fromJSON(search_content)
-    
-    #extract the object IDs from the search response
-    object_ids <- search_data$objectIDs
-    
-    #check if any object IDs were found
-    if(length(object_ids) > 0) {
-      # print(paste("Found", length(object_ids), "paintings by", nationality, "artists."))
-      return(object_ids)  #return the object IDs
+
+  response <- GET(search_url, query = query)
+
+  if (status_code(response) == 200) {
+    data <- content(response, as = "parsed", encoding = "UTF-8")
+
+    if (!is.null(data$objectIDs)) {
+      return(data$objectIDs)
     } else {
-      print(paste("No matching objects found for", nationality, "artists."))
+      message("No matching objects found.")
       return(NULL)
     }
   } else {
-    print(paste("Search request failed with status:", status_code(search_response)))
+    message("Search request failed with status: ", status_code(response))
     return(NULL)
   }
 }
 
+tmp <- search_paintings('Europe', public = TRUE)
+length(tmp)
+
 
 ## Function to grab artist info if all info present
-get_artwork_info <- function(object_id, require_title=TRUE) {
+get_artwork_info <- function(object_id) {
+  # Append object_id to url
   object_url <- paste0("https://collectionapi.metmuseum.org/public/collection/v1/objects/", object_id)
   
   tryCatch({
     response <- GET(object_url, add_headers("User-Agent" = "R-client/1.0"))
-    
+    # First possible error
     if (status_code(response) != 200) {
       message("HTTP error for object ID: ", object_id, " - Status code: ", status_code(response))
       return(NULL)
     }
 
+    # Grab object info
     obj_data <- content(response, as = "text", encoding = "UTF-8") %>% fromJSON()
 
     title <- obj_data$title
     artist <- obj_data$artistDisplayName
+    nationality <- obj_data$artistNationality
+    bio <- obj_data$artistDisplayBio
     date <- obj_data$objectDate
+    date_start <- obj_data$objectBeginDate
+    date_end <- obj_data$objectEndDate
+    medium <- obj_data$medium
+    dimensions <- obj_data$dimensions
+    period <- obj_data$period
+    classification <- obj_data$classification
     image_url <- obj_data$primaryImage
+    public <- obj_data$isPublicDomain
 
-    if(require_title) {
-      if(is.null(title) || title == "" || is.null(artist) || artist == "" || is.null(image_url) || image_url == "") {
-        message("Invalid data for object ID: ", object_id)
-        return(NULL)
-      }
-    } else if(!require_title) {
-        if(is.null(artist) || artist == "" || is.null(image_url) || image_url == "") {
-          message("Invalid data for object ID: ", object_id)
-          return(NULL)
-        } 
-    }
+    # Check that artist and url info present
+    if(is.null(artist) || artist == "" || is.null(image_url) || image_url == "") {
+      message("Invalid data for object ID: ", object_id)
+      return(NULL)
+    } 
 
+    # Put info into a DF
     tibble(
       object_id = object_id,
       title = title,
       artist_simple = artist,
+      nationality = nationality,
+      bio = bio,
       date = date,
-      image_url = image_url
+      date_start = date_start,
+      date_end = date_end,
+      medium = medium,
+      dimensions = dimensions,
+      period = period,
+      classification = classification,
+      image_url = image_url,
+      public = public
     )
   },
   error = function(e) {
@@ -85,6 +92,7 @@ get_artwork_info <- function(object_id, require_title=TRUE) {
     return(NULL)
   })
 }
+
 
 
 ## Functions to convert artist name syntax
