@@ -3,7 +3,7 @@
 
 # Load Packages & Source Scripts====================================================================
 ## Load packages
-pacman:: p_load(shiny, shinyjs, bslib, here, tidyverse, janitor, DT, tidymodels, shinyWidgets,
+pacman:: p_load(shiny, shinyjs, bslib, here, tidyverse, janitor, DT, tidymodels, httr, shinyWidgets,
                 slickR)
 
 

@@ -72,7 +72,6 @@ exploreUI <- function(id) {
 # Server============================================================================================
 exploreServer <- function(id) {
   moduleServer(id, function(input, output, session) {
-  
 
     ## Update dropdown menus
     ### Create reactive of DF
@@ -84,17 +83,13 @@ exploreServer <- function(id) {
     ### Update dropdowns
     #movement
     observeEvent(input$sel_movement, {
-      req(input$sel_movement)
+      req(input$sel_movement != "")
+      # req(input$sel_movement)
       df_filt <- filter(df_art(), movement==input$sel_movement)
         
       vec_natl_update <- unique(df_filt$nationality)
   
       vec_artist1_update <- unique(df_filt$artist)
-  
-      updateSelectInput(session,
-                        'sel_movement',
-                        selected=input$sel_movement
-      )
   
       updateSelectInput(session,
                         'sel_nationality',
@@ -109,16 +104,13 @@ exploreServer <- function(id) {
   
     #nationality
     observeEvent(input$sel_nationality, {
-      req(input$sel_nationality)
-      df_filt <- filter(df_art(), nationality==input$sel_nationality)
+      req(input$sel_nationality != "")
+      # req(input$sel_nationality)
+      df_filt <- filter(df_art(), 
+                        nationality==input$sel_nationality) %>%
+        {if(input$sel_movement != "") filter(., movement==input$sel_movement) else .}
   
       vec_artist2_update <- unique(df_filt$artist)
-  
-  
-      updateSelectInput(session,
-                        'sel_nationality',
-                        selected=input$nationality
-      )
   
       updateSelectInput(session,
                         'sel_artist',
@@ -129,7 +121,7 @@ exploreServer <- function(id) {
     
     ## Create selected artist reactive DF
     df_art_sel <- reactive({
-      req(input$sel_artist)
+      req(input$sel_artist != "")
       
       df_art() %>%
         filter(artist==input$sel_artist) 
