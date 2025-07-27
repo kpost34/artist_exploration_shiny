@@ -40,8 +40,8 @@ df_artist_info <- tribble(
   "Symbolism", "French", "Gauguin, Paul",
   "Impressionism", "French", "Cézanne, Paul",
   "Post-impressionism", "French", "Cézanne, Paul",
-  "Spanish Rennaissance", "Greek", "Theotokopoulos, Domenikos",
-  "Rococo", "Italian", "Tiepolo, Giovanni Battista",
+  "Spanish Rennaissance", "Greek", "Theotokopoulos, Domenikos"
+  # "Rococo", "Italian", "Tiepolo, Giovanni Battista",
 
 ) %>%
   mutate(artist_simple=convert_artist_name(artist)) 
@@ -118,23 +118,22 @@ in his time, El Greco's visionary art profoundly influenced modern artists, incl
 the Expressionists."
 
 
-bio_tiepolo <- "Giovanni Battista Tiepolo (1696–1770) was a Venetian painter and printmaker 
-celebrated for his grand, luminous frescoes and masterful use of color and composition. A 
-leading figure of the Rococo era, Tiepolo became renowned for his theatrical, uplifting scenes 
-filled with graceful figures, dynamic movement, and dramatic light. His major works include 
-ceiling frescoes in the Würzburg Residence in Germany and the Palazzo Labia in Venice. Tiepolo's 
-art blended classical themes with imaginative flair, embodying the elegance and exuberance of 
-18th-century European art. His influence extended across Europe, and his legacy endures as one 
-of Italy’s greatest decorative painters."
+# bio_tiepolo <- "Giovanni Battista Tiepolo (1696–1770) was a Venetian painter and printmaker 
+# celebrated for his grand, luminous frescoes and masterful use of color and composition. A 
+# leading figure of the Rococo era, Tiepolo became renowned for his theatrical, uplifting scenes 
+# filled with graceful figures, dynamic movement, and dramatic light. His major works include 
+# ceiling frescoes in the Würzburg Residence in Germany and the Palazzo Labia in Venice. Tiepolo's 
+# art blended classical themes with imaginative flair, embodying the elegance and exuberance of 
+# 18th-century European art. His influence extended across Europe, and his legacy endures as one 
+# of Italy’s greatest decorative painters."
 
 
 ### Compile into DF
 df_artist_bios <- tibble(
   artist=c("Manet, Edouard", "van Gogh, Vincent", "Degas, Edgar", "van Rijn, Rembrandt", 
-           "Gauguin, Paul", "Cézanne, Paul", "Theotokopoulos, Domenikos", 
-           "Tiepolo, Giovanni Battista"),
+           "Gauguin, Paul", "Cézanne, Paul", "Theotokopoulos, Domenikos"),
   bio=c(bio_manet, bio_vangogh, bio_degas, bio_rembrandt, bio_gauguin, bio_cezanne,
-        bio_theo, bio_tiepolo)
+        bio_theo)
 ) %>%
   mutate(artist_simple=convert_artist_name(artist))
 
@@ -142,21 +141,31 @@ df_artist_bios <- tibble(
 
 ### Join artist info and bios with art info for complete df
 #### Read in art info (for public domain art)
-fp_art_explore_new <- here("data", "02_art-exploration_new.rds")
-df_art_info <- readRDS(fp_art_explore_new) %>%
-  filter(nchar(date) > 0) %>% #must have date/year info
+fp_art_explore <- list.files(here("data"), "^02_art-exploration", full.names=TRUE) %>% 
+  sort(decreasing=TRUE)
+
+df_art_info <- readRDS(fp_art_explore) %>%
+  select(!c(bio, period)) %>%
+  filter(nchar(date) > 0, #must have date/year info
+         classification=="Paintings") %>% 
   mutate(artist_simple=ifelse(
     str_detect(artist_simple, "\\("),
     str_remove_all(artist_simple, ".+\\(|\\).*$"),
     artist_simple
-  ))
+  )) 
 
 
 #### Execute joins
+cols_art_info <- c("object_id", "title", "artist", "artist_simple", "classification", "date",
+                   "date_start", "date_end", "medium", "dimensions", "nationality",
+                   "movement", "bio", "image_url", "public")
+
 df_art_info_full <- df_artist_info %>%
   left_join(df_artist_bios) %>%
   left_join(df_art_info) %>%
-  arrange(artist, nationality, movement)
+  arrange(movement, nationality, artist) %>%
+  select(all_of(cols_art_info))
+  
 
 df_art_info_full
 
