@@ -25,9 +25,6 @@ if (status_code(response) == 200) {
 
 
 
-
-
-
 # Retrieve and View Artwork=========================================================================
 ## Search for paintings by Van Gogh
 #create objects
@@ -245,62 +242,6 @@ img <- image_read(first_artwork$image_url)
 print(img)  # Display the image in RStudio's Viewer pane
 
 
-
-
-
-# Models
-# First model
-#UI: user uploads image of painting, and app will identify artist and movement
-#model trained on features of images only (predictors) and yield artist or movement (category)
-#training data: use public and non-public domain data; choose k clusters with 80/20 breakdown,
-  #fit model, apply hyperparameter tuning
-#test data: user-imported image
-
-
-# Second model & third models
-# UI: a series of images or images plus metadata (different models); let's say 5 and user competes
-  #against app in identifying artist and/or movememnt correctly
-# model trained on feature of images only or on images and metadata
-# training data:
-# test data: public domain images from The Met only
-
-
-
-
-
-
-
-#NOTE: chatgpt gave me the following info for developing an ML algo for this project
-# To develop a machine learning algorithm to identify the artist and movement/period of an artwork, conceptually, you would follow these main steps:
-# 
-# 1. Data Collection:
-# Images: Collect a large dataset of artwork images, along with labeled metadata such as artist and movement/period.
-# Metadata: Include rich metadata like artist names, movement or period labels, styles, medium, and other descriptive fields.
-# 2. Preprocessing:
-# Image Preprocessing: Resize and normalize artwork images to prepare them for input into a model (e.g., converting images to a fixed size, applying color normalization).
-# Metadata Preprocessing: Convert categorical data (artist names, period/movement) into numerical representations, possibly using one-hot encoding, label encoding, or embeddings.
-# 3. Feature Extraction:
-# Visual Features: Use a Convolutional Neural Network (CNN) to automatically extract features from the images (e.g., colors, brushstrokes, composition). Pretrained models like ResNet, VGG, or Inception can be used for feature extraction.
-# Metadata Features: Extract relevant metadata features such as artist names, movement/period, medium, and classify them (e.g., using embeddings or one-hot encoding for categorical fields).
-# 4. Model Architecture:
-# Multi-Modal Model: Create a hybrid model that can process both image and metadata inputs:
-# For images, use a CNN (either from scratch or using a pretrained model for transfer learning).
-# For metadata, use a feedforward neural network (FNN) or embedding layers for categorical data.
-# Combine both image features and metadata features into a unified representation before making predictions.
-# Classifier: For the final output:
-# Use a softmax classifier to predict probabilities for multiple classes (artist, movement/period).
-# For multiple classes (artist and movement), either predict them sequentially (one after the other) or jointly (multi-output classification).
-# 5. Training:
-# Loss Function: Use categorical cross-entropy for classification tasks. If predicting artist and movement separately, you could use multiple loss functions.
-# Data Augmentation: Apply data augmentation to artwork images (e.g., random cropping, rotations, flipping) to increase diversity and prevent overfitting.
-# 6. Evaluation:
-# Evaluate the model using appropriate metrics like accuracy, precision, and recall. If there are many classes (artists or movements), use top-k accuracy to check if the correct artist/movement is in the top k predictions.
-# 7. Fine-Tuning & Optimization:
-# Fine-tune the hyperparameters (e.g., learning rate, batch size) and model architecture (e.g., CNN depth, embedding dimensions).
-# Use cross-validation or split the dataset into training, validation, and test sets to prevent overfitting.
-# Conceptual Flow:
-# Data Collection → 2. Preprocessing → 3. Feature Extraction (Image + Metadata) → 4. Model Design (CNN for images + FNN for metadata) → 5. Training → 6. Evaluation → 7. Fine-tuning & Deployment
-# By combining image features with metadata, you can leverage both visual and textual information, enabling the model to better identify the artist and movement of an artwork.
 
 
 

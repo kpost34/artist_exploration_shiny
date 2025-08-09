@@ -1,7 +1,8 @@
 # Functions for Artist Exploration App #
 
 # Backbone/Model-Building Functions=================================================================
-## Function to perform the search by nationality
+## Functions for metadata------------------------------
+### Function to perform the search by nationality
 search_paintings <- function(nationality, public=NULL) {
   search_url <- "https://collectionapi.metmuseum.org/public/collection/v1/search"
 
@@ -33,7 +34,7 @@ tmp <- search_paintings('Europe', public = TRUE)
 length(tmp)
 
 
-## Function to grab artist info if all info present
+### Function to grab artist info if all info present
 get_artwork_info <- function(object_id) {
   # Append object_id to url
   object_url <- paste0("https://collectionapi.metmuseum.org/public/collection/v1/objects/", object_id)
@@ -92,6 +93,102 @@ get_artwork_info <- function(object_id) {
     return(NULL)
   })
 }
+
+
+### Wrapper function for grabbing artist info
+loop_get_artwork_info <- function(fileno){
+  # Read in obj ids
+  filename <- paste0("vec_art_objs", fileno, ".rds")
+  fp <- here("data", "obj_id_vecs", filename)
+  
+  vec_art_loop <- readRDS(fp)
+
+  # Create and populate list
+  t_art_full <- list()
+  n <- 1
+
+  for(i in seq(1, 1750, 50)){
+    t_art_loop <- purrr::map(vec_art_loop[i:(i+49)], function(obj_id) {
+      Sys.sleep(1.5 + runif(1, 0, 1))
+      get_artwork_info(obj_id)
+    })
+    Sys.sleep(30)
+    t_art_full <- c(t_art_full, t_art_loop)
+    print(paste("Batch", n, "Completed"))
+    n <- n + 1
+  }
+
+  return(t_art_full)
+
+}
+
+
+## Functions for cleaning metadata------------------------------
+### Function to clean artist names (from metadata)
+clean_artist_names <- function(df, name_col = "artist_simple") {
+  
+  lowercase_particles <- function(name) {
+    # Fix apostrophe spacing: "d' Hondecoeter" -> "d'Hondecoeter"
+    name <- str_replace_all(name, regex("d'\\s+", ignore_case = TRUE), "d'")
+    
+    # Define particles to keep lowercase (added "der")
+    particles <- c("van", "von", "de", "del", "della", "da", "di", "le", "la", "du", 
+                   "des", "dos", "das", "den", "het", "op", "te", "ten", "ter", "der", "d'")
+    
+    # Split into parts
+    parts <- str_split(name, "\\s+")[[1]]
+    
+    fixed_parts <- sapply(parts, function(part) {
+      lower_part <- str_to_lower(part)
+      
+      # Handle d' prefix separately
+      if (str_starts(lower_part, "d'")) {
+        # lowercase 'd'', capitalize first letter after apostrophe + rest as-is
+        paste0("d'", str_to_upper(substr(part, 3, 3)), substr(part, 4, nchar(part)))
+      } else if (lower_part %in% particles) {
+        lower_part
+      } else {
+        # Capitalize first letter, keep rest as is
+        paste0(str_to_upper(substr(part, 1, 1)), substr(part, 2, nchar(part)))
+      }
+    })
+    
+    paste(fixed_parts, collapse = " ")
+  }
+  
+  df %>%
+    mutate(
+      artist_clean = !!sym(name_col) %>%
+        str_remove("\\s*\\(.*?\\)") %>%
+        str_remove_all("(?i)\\s+and workshop|\\s+called.*?$") %>%
+        str_remove_all("(?i)^Attributed To\\s*") %>%
+        str_remove_all("(?i)\\bthe elder\\b|\\bthe younger\\b|\\bthe third\\b") %>%
+        str_squish() %>%
+        str_replace_all("\\s*-\\s*", "-") %>%
+        stri_trans_general("Latin-ASCII") %>%  # remove accents
+        str_to_title() %>%
+        str_replace_all("[^\\w\\s\\.\\-']", "") %>%
+        str_replace_all("\\bD'", "d'") %>%
+        str_replace_all(" Y ", " y ") %>%
+        str_replace_all("Iii", "III") %>%
+        str_squish()
+    ) %>%
+    rowwise() %>%
+    mutate(
+      artist_clean = lowercase_particles(artist_clean)
+    ) %>%
+    ungroup() %>%
+    mutate(
+      artist_clean = str_squish(artist_clean),
+      artist_clean = str_remove(artist_clean, "\\s[\\p{Han}\\p{Hiragana}\\p{Katakana}]+$"),
+      artist_clean = str_remove(artist_clean, "(?i)^Sir\\s+|^Count\\s+"),
+      artist_clean = str_trim(artist_clean),
+      artist_clean = ifelse(artist_clean == "Nicola di Maestro Antonio",
+                            "Nicola di Maestro Antonio d'Ancona",
+                            artist_clean)
+    )
+}
+
 
 
 
