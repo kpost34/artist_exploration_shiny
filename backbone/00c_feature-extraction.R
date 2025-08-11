@@ -6,12 +6,9 @@ pacman::p_load(here, tidyverse, httr, magick)
 
 source(here("fns_objs", "00_fn.R"))
 
-fname_art0 <- list.files(here("data"), 
-                         pattern="^00_art-info-final",
-                         full.names=TRUE) %>%
-  sort(decreasing=TRUE) %>%
-  .[1]
-df_art0 <- readRDS(fname_art0)
+fname_art <- grab_newest_fp(dir=here("data"), patt="^00_art-info-final")
+
+df_art0 <- readRDS(fname_art)
 
 
 # Image Processing==================================================================================

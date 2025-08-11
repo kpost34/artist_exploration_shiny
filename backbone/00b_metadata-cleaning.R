@@ -16,8 +16,7 @@ df_art_info_all <- purrr::map_df(vec_fn_art_info, readRDS) %>%
 
 
 ## Read in public art info DF
-fp_art_explore <- list.files(here("data"), "^02_art-exploration", full.names=TRUE) %>% 
-  sort(decreasing=TRUE)
+fp_art_explore <- grab_newest_fp(dir=here("data"), patt="^00_art-exploration")
 
 df_art_info_public <- readRDS(fp_art_explore)
 

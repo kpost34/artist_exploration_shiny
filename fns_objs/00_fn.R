@@ -1,6 +1,18 @@
 # Functions for Artist Exploration App #
 
 # Backbone/Model-Building Functions=================================================================
+## Utility functions------------------------------
+grab_newest_fp <- function(dir, patt) {
+  fp <- list.files(dir, 
+                   pattern=patt,
+                   full.names=TRUE) %>%
+  sort(decreasing=TRUE) %>%
+  .[1]
+  
+  return(fp)
+}
+
+
 ## Functions for metadata------------------------------
 ### Function to perform the search by nationality
 search_paintings <- function(nationality, public=NULL) {
