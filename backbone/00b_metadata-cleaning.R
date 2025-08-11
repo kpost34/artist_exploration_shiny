@@ -148,7 +148,7 @@ df_art_info_final <- df_art_info_all %>%
 # Save DF===========================================================================================
 fn_art_info_final <- paste0("00_art-info-final_", Sys.Date(), ".rds")
 fp_art_info <- here("data", fn_art_info_final)
-saveRDS(df_art_info_final, fp_art_info)
+# saveRDS(df_art_info_final, fp_art_info)
 
 
 
