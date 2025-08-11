@@ -190,23 +190,69 @@ clean_artist_names <- function(df, name_col = "artist_simple") {
 }
 
 
-
-
-## Functions to convert artist name syntax
-format_name <- function(name){
-  formatted_name <- name %>%
-    str_split_1(pattern=", ") %>%
-    rev() %>%
-    paste(collapse=" ")
+## Functions for processing images------------------------------
+### Function to process image file to vector
+process_image_to_vector <- function(img_url, size = "100x100") {
+  # Create a temporary file
+  temp_file <- tempfile(fileext = ".jpg")
   
-  return(formatted_name)
+  # Ensure the temp file is deleted on function exit
+  on.exit(unlink(temp_file), add = TRUE)
+  
+  # Try to download the image
+  success <- tryCatch({
+    download.file(img_url, temp_file, mode = "wb", quiet = TRUE)
+    TRUE
+  }, error = function(e) {
+    FALSE
+  })
+  
+  if (!success) return(NULL)
+  
+  # Try to read and process the image
+  img <- tryCatch({
+    suppressWarnings(
+      image_read(temp_file) %>%
+      image_strip() %>%
+      image_resize(size) %>%
+      image_extent(size, gravity = "center", color = "white")
+    )
+  }, error = function(e) {
+    return(NULL)
+  })
+  
+  if(is.null(img)) return(NULL)
+  
+  # Convert to feature vector
+  img_array <- image_data(img)
+  feature_vector <- as.integer(as.vector(img_array))
+  
+  return(feature_vector)
 }
 
 
-convert_artist_name <- function(names) {
-  formatted_names <- purrr::map_chr(names, format_name)
+# Wrapper function for above
+batch_image_processing <- function(df, start=1, n=100) {
+  # Subset data
+  df <- df[start:(start+(n-1)),]
   
-  return(formatted_names)  
+  # Process image and store to new DF
+  results <- purrr::map_df(df$object_id, function(x){
+    img_url <- df %>% filter(object_id==x) %>% pull(image_url)
+    feat_vec <- process_image_to_vector(img_url)
+    
+    if(is.null(feat_vec)) return(NULL)
+    
+    tibble(object_id=x, feature_vector=list(feat_vec))
+  }) 
+  
+  # Remove NULLs before combining into a DF
+  df_results <- purrr::compact(results) %>% bind_rows()
+  
+  # Save to rds
+  fname <- paste0("df_img_feat_vec", start, ".rds")
+  fp <- here("data", "img_feat_vec_dfs", fname)
+  saveRDS(df_results, fp)
 }
 
 
@@ -233,5 +279,25 @@ build_q_a_block <- function(id, n) {
     )
   )
 }
+
+
+## Functions to convert artist name syntax
+convert_artist_name <- function(names) {
+  formatted_names <- purrr::map_chr(names, format_name)
+  
+  return(formatted_names)  
+}
+
+format_name <- function(name){
+  formatted_name <- name %>%
+    str_split_1(pattern=", ") %>%
+    rev() %>%
+    paste(collapse=" ")
+  
+  return(formatted_name)
+}
+
+
+
 
 

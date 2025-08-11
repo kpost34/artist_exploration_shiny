@@ -141,10 +141,10 @@ df_artist_bios <- tibble(
 
 ### Join artist info and bios with art info for complete df
 #### Read in art info (for public domain art)
-fp_art_explore <- list.files(here("data"), "^02_art-exploration", full.names=TRUE) %>% 
+fp_art_explore <- list.files(here("data"), "^00_art-exploration", full.names=TRUE) %>% 
   sort(decreasing=TRUE)
 
-df_art_info <- readRDS(fp_art_explore) %>%
+df_art_info_public <- readRDS(fp_art_explore) %>%
   select(!c(bio, period)) %>%
   filter(nchar(date) > 0, #must have date/year info
          classification=="Paintings") %>% 
@@ -160,18 +160,17 @@ cols_art_info <- c("object_id", "title", "artist", "artist_simple", "classificat
                    "date_start", "date_end", "medium", "dimensions", "nationality",
                    "movement", "bio", "image_url", "public")
 
-df_art_info_full <- df_artist_info %>%
+df_art_info_public_full <- df_artist_info_public %>%
   left_join(df_artist_bios) %>%
   left_join(df_art_info) %>%
   arrange(movement, nationality, artist) %>%
   select(all_of(cols_art_info))
   
 
-df_art_info_full
+df_art_info_public_full
 
 
-## Choices for game (will change later)
-# vec_artists <- c("Van Gogh", "Monet", "Dalí", "Picasso", "Manet")
+
 
 
 
