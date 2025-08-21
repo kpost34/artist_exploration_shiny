@@ -5,7 +5,7 @@ exploreUI <- function(id) {
   ns <- NS(id)
   
   tagList(
-    h2("Explore Artwork from Well-Known European and North American Painters"),
+    h2("Explore Artwork from Well-Known European Painters"),
     br(),
     
     fluidRow(
@@ -76,7 +76,7 @@ exploreServer <- function(id) {
     ## Update dropdown menus
     ### Create reactive of DF
     df_art <- reactive({
-      df_art_info_full
+      df_art_info_public_full
     })
   
   

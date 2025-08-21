@@ -6,9 +6,9 @@ pacman::p_load(here, tidyverse, httr, magick)
 
 source(here("fns_objs", "00_fn.R"))
 
-fname_art <- grab_newest_fp(dir=here("data"), patt="^00_art-info-final")
+fp_art <- grab_newest_fp(dir=here("data"), patt="^00_art-info-final")
 
-df_art0 <- readRDS(fname_art)
+df_art0 <- readRDS(fp_art)
 
 
 # Image Processing==================================================================================
@@ -52,8 +52,7 @@ df_img_feat_vec <- list.files(here("data", "img_feat_vec_dfs"), full.names=TRUE)
 
 ## Merge feature vector DF with metadata DF
 df_art <- df_art0 %>%
-  left_join(df_img_feat_vec, by="object_id") 
-
+  inner_join(df_img_feat_vec, by="object_id") 
 
 
 
@@ -65,7 +64,7 @@ fp_img_feat_vec <- paste(here("data", fname_img_feat_vec))
 
 
 ## Feature vector + metadata DF
-fname_art_full <- paste0("01_art-info-final_feat-vec_", Sys.Date(), ".rds")
+fname_art_full <- paste0("00_art-info-final_feat-vec_", Sys.Date(), ".rds")
 fp_art_full <- paste(here("data", fname_art_full))
 # saveRDS(df_art, fp_art_full)
 
