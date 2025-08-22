@@ -1,7 +1,7 @@
-# Functions for Artist Exploration App #
+# Backbone Functions for Artist Exploration Shiny App #
 
-# Backbone/Model-Building Functions=================================================================
-## Utility functions------------------------------
+
+# Utility functions------------------------------
 grab_newest_fp <- function(dir, patt) {
   fp <- list.files(dir, 
                    pattern=patt,
@@ -13,8 +13,9 @@ grab_newest_fp <- function(dir, patt) {
 }
 
 
-## Functions for metadata------------------------------
-### Function to perform the search by nationality
+
+# 00: Metadata Functions============================================================================
+## Function to perform the search by nationality
 search_paintings <- function(nationality, public=NULL) {
   search_url <- "https://collectionapi.metmuseum.org/public/collection/v1/search"
 
@@ -46,7 +47,7 @@ tmp <- search_paintings('Europe', public = TRUE)
 length(tmp)
 
 
-### Function to grab artist info if all info present
+## Function to grab artist info if all info present
 get_artwork_info <- function(object_id) {
   # Append object_id to url
   object_url <- paste0("https://collectionapi.metmuseum.org/public/collection/v1/objects/", object_id)
@@ -107,7 +108,7 @@ get_artwork_info <- function(object_id) {
 }
 
 
-### Wrapper function for grabbing artist info
+## Wrapper function for grabbing artist info
 loop_get_artwork_info <- function(fileno){
   # Read in obj ids
   filename <- paste0("vec_art_objs", fileno, ".rds")
@@ -243,7 +244,7 @@ process_image_to_vector <- function(img_url, size = "100x100") {
 }
 
 
-# Wrapper function for above
+### Wrapper function for above
 batch_image_processing <- function(df, start=1, n=100) {
   # Subset data
   df <- df[start:(start+(n-1)),]
@@ -269,45 +270,79 @@ batch_image_processing <- function(df, start=1, n=100) {
 
 
 
-# App-related Functions=============================================================================
-## Function for building game tab of UI
-build_q_a_block <- function(id, n) {
-  # Create ns
-  ns <- NS(id)
+# 01 Functions======================================================================================
+## Functions for splitting data------------------------------
+### Function to filter Ns DF by size and join back to large DF
+filter_join_artists <- function(df, n_min=NA, n_max=NA){
+  df_new <- df %>%
+    {if(!is.na(n_min)) filter(., n_artworks >= n_min) else .} %>%
+    {if(!is.na(n_max)) filter(., n_artworks <= n_max) else .} %>%
+    separate_longer_delim(artists, delim="; ") %>%
+    select(artist_clean="artists") %>%
+    inner_join(df_art_feat) %>%
+    relocate(artist_clean, .before="artist_simple") 
   
-  # Create names
-  nm_root <- c("out_img_art", "ui_answer_art", "txt_answer_msg_art")
-  nm <- paste0(nm_root, n)
-  names(nm) <- c("image", "answer", "message")
-  
-  # Build UI block
-  tagList(
-    column(2,
-      imageOutput(ns(nm["image"]),
-                  height="250px", 
-                  width="250px"),
-      uiOutput(ns(nm["answer"])),
-      strong(textOutput(ns(nm["message"])))
-    )
-  )
+  return(df_new)
 }
 
 
-## Functions to convert artist name syntax
-convert_artist_name <- function(names) {
-  formatted_names <- purrr::map_chr(names, format_name)
+### Function to assign dataset to rows
+assign_split <- function(group_df, n_valid_test = 1) {
+  n <- nrow(group_df)
+  if (n < 2 * n_valid_test) {
+    stop(paste("Not enough rows in group", unique(group_df$group), "to assign", n_valid_test, "to valid and test"))
+  }
+
+  indices <- sample(n)
   
-  return(formatted_names)  
+  valid_idx <- indices[1:n_valid_test]
+  test_idx <- indices[(n_valid_test + 1):(2 * n_valid_test)]
+  
+  group_df$set <- "train"
+  group_df$set[valid_idx] <- "valid"
+  group_df$set[test_idx] <- "test"
+  
+  return(group_df)
 }
 
-format_name <- function(name){
-  formatted_name <- name %>%
-    str_split_1(pattern=", ") %>%
-    rev() %>%
-    paste(collapse=" ")
+
+## QC functions for splitting data------------------------------
+### Function to check min and max artworks per artist by dataset
+check_artwork_range <- function(df) {
+  df1 <- df %>%
+    group_by(artist_clean, set) %>%
+    count() %>% 
+    group_by(set) %>%
+    summarize(min=min(n),
+              max=max(n))
   
-  return(formatted_name)
+  return(df1)
 }
+
+
+### Function to check number of artists per dataset
+check_n_artists <- function(df) {
+  df1 <- df %>%
+    group_by(set) %>%
+    summarize(n_artists=n_distinct(artist_clean))
+  
+  return(df1)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

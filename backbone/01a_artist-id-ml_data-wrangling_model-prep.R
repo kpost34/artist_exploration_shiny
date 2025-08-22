@@ -1,4 +1,4 @@
-# Artist Identification Model: Data Wrangling
+# Artist Identification Model: Data Wrangling & Model Prep
 
 
 # Load Packages, Functions, and Data================================================================
@@ -86,64 +86,6 @@ df_art_ns %>%
 
 
 ## Split data
-### Create functions
-#### Filter Ns DF by size and join back to large DF
-filter_join_artists <- function(df, n_min=NA, n_max=NA){
-  df_new <- df %>%
-    {if(!is.na(n_min)) filter(., n_artworks >= n_min) else .} %>%
-    {if(!is.na(n_max)) filter(., n_artworks <= n_max) else .} %>%
-    separate_longer_delim(artists, delim="; ") %>%
-    select(artist_clean="artists") %>%
-    inner_join(df_art_feat) %>%
-    relocate(artist_clean, .before="artist_simple") 
-  
-  return(df_new)
-}
-
-
-#### Assign dataset to rows
-assign_split <- function(group_df, n_valid_test = 1) {
-  n <- nrow(group_df)
-  if (n < 2 * n_valid_test) {
-    stop(paste("Not enough rows in group", unique(group_df$group), "to assign", n_valid_test, "to valid and test"))
-  }
-
-  indices <- sample(n)
-  
-  valid_idx <- indices[1:n_valid_test]
-  test_idx <- indices[(n_valid_test + 1):(2 * n_valid_test)]
-  
-  group_df$set <- "train"
-  group_df$set[valid_idx] <- "valid"
-  group_df$set[test_idx] <- "test"
-  
-  return(group_df)
-}
-
-
-#### QC functions
-#check min and max artworks per artist by dataset
-check_artwork_range <- function(df) {
-  df1 <- df %>%
-    group_by(artist_clean, set) %>%
-    count() %>% 
-    group_by(set) %>%
-    summarize(min=min(n),
-              max=max(n))
-  
-  return(df1)
-}
-
-#check number of artists per dataset
-check_n_artists <- function(df) {
-  df1 <- df %>%
-    group_by(set) %>%
-    summarize(n_artists=n_distinct(artist_clean))
-  
-  return(df1)
-}
-
-
 ### Singular and double artworks
 df_train1 <- filter_join_artists(df_art_ns, n_max=2) %>%
   mutate(set="train")
@@ -228,13 +170,99 @@ rm(list=setdiff(ls(), c("train_test_split", "train_valid_split")))
 
 
 
-# Save Splits to RDS================================================================================
-fp_train_test_split <- here("data", paste0("01_train-test-split_", 
-                                              Sys.Date(),
-                                              ".rds"))
-fp_train_valid_split <- here("data", paste0("01_train-valid-split_", 
-                                              Sys.Date(),
-                                              ".rds"))
+# Model Prep========================================================================================
+## Create dfs from splits
+df_train <- training(train_valid_split)
+df_valid <- testing(train_valid_split)
+df_test <- testing(train_test_split)
 
-# saveRDS(train_test_split, fp_train_test_split)
-# saveRDS(train_valid_split, fp_train_valid_split)
+
+## Create and prep recipe 
+cols_rgb <- names(df_test) %>% str_subset("^feature")
+
+rec_art <- recipe(~ ., data=df_train) %>%
+  # update_role(~all_of(cols_rgb), new_role="id") %>%
+  step_normalize(all_of(cols_rgb)) %>%
+  step_pca(all_of(cols_rgb), threshold=0.9)
+
+rec_prep_art <- prep(rec_art)
+
+
+## Normalize features & run PCA
+### Assess threshold
+#### Get the prcomp object from the recipe
+pca_obj <- rec_prep_art$steps[[2]]$res
+
+
+#### Extract proportion of var, cum var, and evs
+var_explained <- summary(pca_obj)$importance
+pca_evs <- pca_obj$sdev^2
+
+
+#### Make a DF for plotting
+df_pca_info <- tibble(
+  PC = seq_along(pca_evs),
+  Eigenvalue = pca_evs,
+  Proportion = pca_evs / sum(pca_evs),
+  Cumulative = cumsum(pca_evs) / sum(pca_evs)
+)
+
+
+#### Plot cumulative variance
+df_pca_info %>%
+  ggplot(aes(x=PC, y=Cumulative)) +
+  geom_line() +
+  geom_point() +
+  geom_hline(yintercept=0.9, linetype="dashed", color="red") +
+  labs(title="Cumulative Variance Explained by PCA Components",
+       x="Principal Component",
+       y="Cumulative Variance Explained") +
+  ylim(c(.8, 1)) +
+  theme_minimal()
+
+which(df_pca_info$Cumulative >= 0.8)[1] #25 PCs
+which(df_pca_info$Cumulative >= 0.9)[1] #97 PCs
+which(df_pca_info$Cumulative >= 0.95)[1] #237 PCs
+
+
+#### Make scree plot (to ID elbow)
+df_pca_info[50:250,] %>%
+  ggplot(aes(x=PC, y=Eigenvalue)) +
+  geom_col() +
+  theme_bw()
+#no discernible elbow
+
+
+#### Find PCs where EVs are above 1
+df_pca_info %>%
+  filter(Eigenvalue > 1) %>%
+  pull(PC) %>%
+  max()
+#712!
+
+
+# Clear extraneous objects
+rm(list=setdiff(ls(), c("rec_prep_art", "df_train", "df_valid", "df_test")))
+
+
+# Run PCA (using 0.9 threshold from above)
+pca_train <- bake(rec_prep_art, new_data=df_train)
+pca_valid <- bake(rec_prep_art, new_data=df_valid)
+pca_test <- bake(rec_prep_art, new_data=df_test)
+
+
+
+# Save PCAs to File=================================================================================
+fp_pca_train <- here("data", paste0("01_pca-train_", 
+                                     Sys.Date(),
+                                     ".rds"))
+fp_pca_valid <- here("data", paste0("01_pca-valid_", 
+                                     Sys.Date(),
+                                     ".rds"))
+fp_pca_test <- here("data", paste0("01_pca-test_", 
+                                    Sys.Date(),
+                                    ".rds"))
+
+# saveRDS(pca_train, fp_pca_train)
+# saveRDS(pca_valid, fp_pca_valid)
+# saveRDS(pca_test, fp_pca_test)
