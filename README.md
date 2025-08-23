@@ -1,1 +1,1 @@
-# artisti_exploration_shiny
+# artist_exploration_shiny
