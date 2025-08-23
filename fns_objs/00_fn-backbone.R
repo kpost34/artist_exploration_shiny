@@ -286,7 +286,8 @@ filter_join_artists <- function(df, n_min=NA, n_max=NA){
 }
 
 
-### Function to assign dataset to rows
+### Functions to assign dataset to rows
+#equal valid and test sets (and balance to training)
 assign_split <- function(group_df, n_valid_test = 1) {
   n <- nrow(group_df)
   if (n < 2 * n_valid_test) {
@@ -297,6 +298,29 @@ assign_split <- function(group_df, n_valid_test = 1) {
   
   valid_idx <- indices[1:n_valid_test]
   test_idx <- indices[(n_valid_test + 1):(2 * n_valid_test)]
+  
+  group_df$set <- "train"
+  group_df$set[valid_idx] <- "valid"
+  group_df$set[test_idx] <- "test"
+  
+  return(group_df)
+}
+
+
+#specified valid and test sets (and balance to training)
+assign_split_custom <- function(group_df, n_valid = 1, n_test = 1) {
+  n <- nrow(group_df)
+  total_needed <- n_valid + n_test
+  
+  if (n < total_needed) {
+    stop(paste("Not enough rows in group", unique(group_df$artist_clean), 
+               "to assign", n_valid, "to valid and", n_test, "to test"))
+  }
+  
+  indices <- sample(n)
+  
+  valid_idx <- indices[1:n_valid]
+  test_idx <- indices[(n_valid + 1):(n_valid + n_test)]
   
   group_df$set <- "train"
   group_df$set[valid_idx] <- "valid"
@@ -320,11 +344,12 @@ check_artwork_range <- function(df) {
 }
 
 
-### Function to check number of artists per dataset
-check_n_artists <- function(df) {
+### Function to check number of artists & artworks per dataset
+check_n_art <- function(df) {
   df1 <- df %>%
     group_by(set) %>%
-    summarize(n_artists=n_distinct(artist_clean))
+    summarize(n_artists=n_distinct(artist_clean),
+              n_artworks=n())
   
   return(df1)
 }
