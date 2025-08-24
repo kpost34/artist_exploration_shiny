@@ -1,4 +1,4 @@
-# Feature extraction and combination with final, clean metadata
+# Feature extraction (RGB data) and combination with clean metadata
 
 
 # Load Packages, Functions, and Data=================================================================
@@ -9,6 +9,7 @@ source(here("fns_objs", "00_fn-backbone.R"))
 fp_art <- grab_newest_fp(dir=here("data"), patt="^00_art-info-final")
 
 df_art0 <- readRDS(fp_art)
+
 
 
 # Image Processing==================================================================================
