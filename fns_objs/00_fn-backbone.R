@@ -271,72 +271,11 @@ batch_image_processing <- function(df, start=1, n=100) {
 
 
 # 01 Functions======================================================================================
-## Functions for splitting data------------------------------
-### Function to filter Ns DF by size and join back to large DF
-filter_join_artists <- function(df, n_min=NA, n_max=NA){
-  df_new <- df %>%
-    {if(!is.na(n_min)) filter(., n_artworks >= n_min) else .} %>%
-    {if(!is.na(n_max)) filter(., n_artworks <= n_max) else .} %>%
-    separate_longer_delim(artists, delim="; ") %>%
-    select(artist_clean="artists") %>%
-    inner_join(df_art_feat) %>%
-    relocate(artist_clean, .before="artist_simple") 
-  
-  return(df_new)
-}
-
-
-### Functions to assign dataset to rows
-#equal valid and test sets (and balance to training)
-assign_split <- function(group_df, n_valid_test = 1) {
-  n <- nrow(group_df)
-  if (n < 2 * n_valid_test) {
-    stop(paste("Not enough rows in group", unique(group_df$group), "to assign", n_valid_test, "to valid and test"))
-  }
-
-  indices <- sample(n)
-  
-  valid_idx <- indices[1:n_valid_test]
-  test_idx <- indices[(n_valid_test + 1):(2 * n_valid_test)]
-  
-  group_df$set <- "train"
-  group_df$set[valid_idx] <- "valid"
-  group_df$set[test_idx] <- "test"
-  
-  return(group_df)
-}
-
-
-#specified valid and test sets (and balance to training)
-assign_split_custom <- function(group_df, n_valid = 1, n_test = 1) {
-  n <- nrow(group_df)
-  total_needed <- n_valid + n_test
-  
-  if (n < total_needed) {
-    stop(paste("Not enough rows in group", unique(group_df$artist_clean), 
-               "to assign", n_valid, "to valid and", n_test, "to test"))
-  }
-  
-  indices <- sample(n)
-  
-  valid_idx <- indices[1:n_valid]
-  test_idx <- indices[(n_valid + 1):(n_valid + n_test)]
-  
-  group_df$set <- "train"
-  group_df$set[valid_idx] <- "valid"
-  group_df$set[test_idx] <- "test"
-  
-  return(group_df)
-}
-
-
 ## QC functions for splitting data------------------------------
 ### Function to check min and max artworks per artist by dataset
 check_artwork_range <- function(df) {
   df1 <- df %>%
-    group_by(artist_clean, set) %>%
-    count() %>% 
-    group_by(set) %>%
+    count(artist_clean) %>%
     summarize(min=min(n),
               max=max(n))
   
@@ -347,7 +286,6 @@ check_artwork_range <- function(df) {
 ### Function to check number of artists & artworks per dataset
 check_n_art <- function(df) {
   df1 <- df %>%
-    group_by(set) %>%
     summarize(n_artists=n_distinct(artist_clean),
               n_artworks=n())
   
@@ -355,21 +293,81 @@ check_n_art <- function(df) {
 }
 
 
+## Feature extraction functions-----------------------------
+### Subfunction to calculate mean absolute deviation
+mad <- function(x) {
+  # Calculate the mean of the data
+  data_mean <- mean(x, na.rm = TRUE) # na.rm = TRUE handles missing values
+  
+  # Calculate the absolute deviations from the mean
+  absolute_deviations <- abs(x - data_mean)
+  
+  # Calculate the mean of the absolute deviations
+  mad_value <- mean(absolute_deviations, na.rm = TRUE)
+  
+  return(mad_value)
+}
 
 
+### Function to extract RGB summary stats/features
+extract_rgb_features <- function(vec) {
+  # Pixels are flattened by color
+  R <- vec[1:10000]
+  G <- vec[10001:20000]
+  B <- vec[20001:30000]
+  
+  # Calculate summary stats on each color
+  tibble(
+    R_mean=mean(R), R_median=median(R), R_sd=sd(R), R_min=min(R), R_max=max(R), 
+    R_q1=quantile(R, 0.25), R_q3=quantile(R, 0.75), R_iqr=quantile(R, 0.75)-quantile(R, 0.25),
+    R_range=max(R)-min(R), R_skew=skewness(R), R_kurtosis=kurtosis(R), R_mad=mad(R),
+    G_mean=mean(G), G_median=median(G), G_sd=sd(G), G_min=min(G), G_max=max(G), 
+    G_q1=quantile(G, 0.25), G_q3=quantile(G, 0.75), G_iqr=quantile(G, 0.75)-quantile(G, 0.25),
+    G_range=max(G)-min(G), G_skew=skewness(G), G_kurtosis=kurtosis(G), G_mad=mad(G),
+    B_mean=mean(B), B_median=median(B), B_sd=sd(B), B_min=min(B), B_max=max(B), 
+    B_q1=quantile(B, 0.25), B_q3=quantile(B, 0.75), B_iqr=quantile(B, 0.75)-quantile(B, 0.25),
+    B_range=max(B)-min(B), B_skew=skewness(B), B_kurtosis=kurtosis(B), B_mad=mad(B)
+  )
+}
 
 
+### Subfunction to count bins
+count_bin <- function(x, bin) {
+  # Count values per bin
+  if(bin==1){
+    bin_count <- between(x, 0, 51) %>% sum()
+  } else if(bin==2){
+    bin_count <- between(x, 52, 102) %>% sum()
+  } else if(bin==3){
+    bin_count <- between(x, 103, 153) %>% sum()
+  } else if(bin==4){
+    bin_count <- between(x, 154, 204) %>% sum()
+  } else if(bin==5){
+    bin_count <- between(x, 205, 255) %>% sum()
+  } else{stop("'bin' must be an integer from 1 through 5")
+  }
+  
+  # Return value
+  return(bin_count)
+}
 
 
-
-
-
-
-
-
-
-
-
-
-
+### Function to extract rgb bin counts
+extract_rgb_bins <- function(vec) {
+  # Pixels are flattened by color
+  R <- vec[1:10000]
+  G <- vec[10001:20000]
+  B <- vec[20001:30000]
+  
+  # Calculate color pixel counts by intensity range
+  tibble(
+    R_bin1=count_bin(R, 1), R_bin2=count_bin(R, 2), R_bin3=count_bin(R, 3),
+    R_bin4=count_bin(R, 4), R_bin5=count_bin(R, 5),
+    G_bin1=count_bin(G, 1), G_bin2=count_bin(G, 2), G_bin3=count_bin(G, 3),
+    G_bin4=count_bin(G, 4), G_bin5=count_bin(G, 5),
+    B_bin1=count_bin(B, 1), B_bin2=count_bin(B, 2), B_bin3=count_bin(B, 3),
+    B_bin4=count_bin(B, 4), B_bin5=count_bin(B, 5)
+  )
+  
+}
 
