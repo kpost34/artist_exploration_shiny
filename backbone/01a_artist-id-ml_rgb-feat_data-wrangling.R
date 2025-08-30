@@ -73,6 +73,13 @@ df_art_ns %>%
             total_artists=sum(n_artists)) 
 #570 from 35
 
+#15
+df_art_ns %>%
+  filter(n_artworks >= 15) %>%
+  summarize(grand_total_artwork=sum(total_artworks),
+            total_artists=sum(n_artists)) 
+#372 from 17
+
 
 ### Choose artists with at least 10 artworks each
 vec_artist_clean <- df_art_feat %>%
@@ -116,7 +123,7 @@ rm(list=setdiff(ls(), c("df_train", "df_test", "mad", "extract_rgb_features", "c
 
 
 # Feature Extraction================================================================================
-## Run extraction functions on dataset
+## Training set
 df_train_feat0 <- df_train %>%
   mutate(rgb_stats=map(feature_vector, extract_rgb_features),
          rgb_bins=map(feature_vector, extract_rgb_bins)) %>%
@@ -125,6 +132,7 @@ df_train_feat0 <- df_train %>%
   select(!feature_vector)
 
 
+## Test set
 df_test_feat0 <- df_test %>%
   mutate(rgb_stats=map(feature_vector, extract_rgb_features),
          rgb_bins=map(feature_vector, extract_rgb_bins)) %>%
@@ -133,6 +141,8 @@ df_test_feat0 <- df_test %>%
   select(!feature_vector)
 
 
+
+# Feature Removal===================================================================================
 ## Assess collinearity
 ### Compute pairwise correlations
 df_train_corr <- df_train_feat0 %>% 
@@ -150,7 +160,6 @@ df_train_corr_collin <- df_train_corr %>%
   select(where(~sum(.x, na.rm=TRUE)>0))
 
 
-## Find features to drop because of their multicollinearity
 ### Find highly correlated pairs and whether 
 df_train_corr_sig <- names(df_train_corr_collin) %>%
   purrr::map_df(function(var) {
@@ -215,10 +224,24 @@ feat_collinear <- df_train_corr_sig %>%
   unique()
 
 
+### Find zero variance features
+feat_zv <- df_train_feat0 %>% 
+  select(starts_with(c("R_", "G_", "B_"))) %>%
+  purrr::map_df(var) %>%
+  pivot_longer(cols=everything(), names_to="feature") %>%
+  filter(value==0) %>%
+  pull(feature)
+#B_max
 
-# Remove one feature highly correlated with at least one same-color feature
-df_train_feat <- df_train_feat0 %>% select(!all_of(feat_collinear))
-df_test_feat <- df_test_feat0 %>% select(!all_of(feat_collinear))
+
+## Remove highly collinear & zero variance features & set artist_clean to fct
+df_train_feat <- df_train_feat0 %>% 
+  select(!all_of(c(feat_collinear, feat_zv))) %>%
+  mutate(artist_clean=as.factor(artist_clean))
+
+df_test_feat <- df_test_feat0 %>% 
+  select(!all_of(c(feat_collinear, feat_zv))) %>%
+  mutate(artist_clean=as.factor(artist_clean))
 
 
 
@@ -231,8 +254,8 @@ fp_test_feat <- here("data", paste0("01_test-feat_",
                                         Sys.Date(),
                                         ".rds"))
 
-saveRDS(df_train_feat, fp_train_feat)
-saveRDS(df_test_feat, fp_test_feat)
+# saveRDS(df_train_feat, fp_train_feat)
+# saveRDS(df_test_feat, fp_test_feat)
 
 
 
