@@ -309,7 +309,7 @@ mad <- function(x) {
 }
 
 
-### Function to extract RGB summary stats/features
+### Function to extract RGB summary stats/features (03 too)
 extract_rgb_features <- function(vec) {
   # Pixels are flattened by color
   R <- vec[1:10000]
@@ -331,7 +331,7 @@ extract_rgb_features <- function(vec) {
 }
 
 
-### Subfunction to count bins
+### Subfunction to count bins (03 too)
 count_bin <- function(x, bin) {
   # Count values per bin
   if(bin==1){
@@ -352,7 +352,7 @@ count_bin <- function(x, bin) {
 }
 
 
-### Function to extract rgb bin counts
+### Function to extract rgb bin counts (03 too)
 extract_rgb_bins <- function(vec) {
   # Pixels are flattened by color
   R <- vec[1:10000]
@@ -370,4 +370,197 @@ extract_rgb_bins <- function(vec) {
   )
   
 }
+
+
+
+# 03 Functions======================================================================================
+## Metadata extraction functions-----------------------------
+### Function to classify medium
+classify_medium <- function(df) {
+  # Create mixed medium vector
+  medium_mixed <- c("Tempera, oil, and gold on wood", 
+                    "Tempera and gold on canvas, transferred from wood",
+                    "Oil on panel, transferred to canvas", 
+                    "Tempera and oil on wood")
+  
+  # Categorize medium values into larger groups
+  df1 <- df %>%
+    mutate(medium_group=case_when(
+      medium=="Oil on copper"                                ~ "Oil on metal",
+      medium=="Fresco, transferred to canvas"                ~ "Fresco",
+      medium %in% medium_mixed                               ~ "Mixed or Other",
+      str_detect(medium, "^Oil.*on (paper|parchment)")       ~ "Oil on paper",
+      str_detect(medium, "^Oil.*on canvas")                  ~ "Oil on canvas",
+      str_detect(medium, "^Oil.*on (wood|oak|beech|linden)") ~ "Oil on wood",
+      str_detect(medium, "^Tempera")                         ~ "Tempera on wood",
+      str_detect(medium, "^Mixed media")                     ~ "Mixed or Other",
+      TRUE                                                   ~ "NEEDS CATEGORY")
+    ) 
+  
+  return(df1)
+}
+
+
+## Dimension-based functions
+### Functions to extract width and height
+#extract width
+grab_width <- function(string, special=FALSE, num=FALSE) {
+  if(!special) {
+    width <- str_extract(string, "[0-9.]{1,}(?= cm\\))") 
+  } else if(special) {
+    width <- str_extract(string, "(?<=([Pp]archment|[Pp]ainted [Ss]urface)).+") %>%
+      # width <- str_remove(dimensions, ".+ painted surface") %>%
+      str_extract("[0-9.]{1,}(?= cm\\))") 
+  }
+  
+  if(num) {
+    width <- as.numeric(width)
+  }
+  return(width)
+}
+
+#extract height
+grab_height <- function(string, special=FALSE, num=FALSE) {
+  if(!special) {
+    height <- str_extract(string, "[0-9.]{1,}(?= [x|\u00d7] [0-9.]{1,} cm\\))")
+  } else if(special){
+    height <- str_extract(string, "(?<=([Pp]archment|[Pp]ainted [Ss]urface)).+") %>%
+      str_extract("[0-9.]{1,}(?= [x|\u00d7] [0-9.]{1,} cm\\))") 
+  }
+  
+  if(num) {
+    height <- as.numeric(height)
+  }
+  return(height)
+}
+
+
+## Function to calculate height and width of multi-piece paintings
+calc_multi_dims <- function(df) {
+  df1 <- df %>%
+    select(object_id, dimensions) %>%
+    filter(str_detect(dimensions, "Each|wing|Angel|panel|\\(a\\)")) %>%
+    mutate(
+      each=str_detect(dimensions, "[Ee]ach"),
+      dim_each=ifelse(each, 
+                      str_extract(dimensions, "(?<=[Ee]ach).+\\)") %>%
+                        str_extract("\\(.+?cm\\)"), NA_character_),
+      dim_extract=ifelse(str_detect(dimensions, "[Pp]ainted surface"),
+                         str_extract_all(dimensions, "(?<=[Pp]ainted surface).+?\\)"),
+                         str_extract_all(dimensions, "(?<= in).+?\\)"))
+    ) %>% 
+    select(!each) %>%
+    unnest(cols=dim_extract) %>% 
+    mutate(dim_extract=str_extract(dim_extract, "\\(.+?cm\\)")) %>% 
+    mutate(dim_extract=paste(dim_extract, dim_each, sep="_")) 
+  
+  df2 <- df1 %>%
+    bind_rows(
+      df1 %>%
+        select(object_id, dimensions, dim_extract="dim_each") %>%
+        filter(!is.na(dim_extract)) %>%
+        distinct()
+    ) %>%
+    select(!dim_each) %>%
+    mutate(dim_extract=str_replace(dim_extract, "x(?=[0-9])", "x "),
+           height_cm=grab_height(dim_extract, num=TRUE),
+           width_cm=grab_width(dim_extract, num=TRUE)) %>%
+    group_by(object_id, dimensions) %>%
+    summarize(height_cm=max(height_cm),
+              width_cm=sum(width_cm)) %>%
+    ungroup() %>%
+    mutate(
+      multi_piece=TRUE,
+      overall=str_detect(dimensions, "[Oo]verall"),
+      ps=str_detect(dimensions, "[Pp]ainted|[Pp]archment"),
+      painted_surface=ps|(!ps & !overall)
+    ) %>%
+    select(object_id, height_cm, width_cm, painted_surface, multi_piece)
+  
+  return(df2)
+  
+}
+
+
+## Function to calculate height and width of singlei-piece painting
+calc_single_dims <- function(df) {
+  df1 <- df %>%
+    select(object_id, dimensions) %>% 
+    #remove multi-piece works
+    filter(!str_detect(dimensions, "Each|wing|Angel|panel|\\(a\\)")) %>%
+    #note: painted_surface here is just for filtering as it's missing examples with 1 set of dims
+    mutate(
+      n_sets=str_count(dimensions, " x | \u00d7 ")/2,
+      diameter=str_detect(dimensions, "[Dd]iameter"),
+      overall=str_detect(dimensions, "[Oo]verall"),
+      ps=str_detect(dimensions, "[Pp]ainted|[Pp]archment")
+    ) %>%
+    mutate(
+      dimensions=str_replace_all(dimensions, "(?<=[0-9]{1})cm", " cm"),
+      height_cm=case_when(
+        (n_sets==0|diameter) & !ps  ~ grab_width(dimensions),
+        (n_sets==0|diameter) & ps   ~ grab_width(dimensions, special=TRUE),
+        n_sets==1|n_sets==1.5       ~ grab_height(dimensions), #ps or !ps is the same
+        n_sets==2 & !ps             ~ grab_height(dimensions),
+        n_sets==2 & ps              ~ grab_height(dimensions, special=TRUE),
+        TRUE                        ~ "NEEDS CATEGORY"),
+      width_cm=case_when(
+        (n_sets==0|diameter) & !ps  ~ grab_width(dimensions),
+        (n_sets==0|diameter) & ps   ~ grab_width(dimensions, special=TRUE),
+        n_sets==1|n_sets==1.5       ~ grab_width(dimensions), #ps or !ps is the same
+        n_sets==2 & !ps             ~ grab_width(dimensions),
+        n_sets==2 & ps              ~ grab_width(dimensions, special=TRUE),
+        TRUE                        ~ "NEEDS CATEGORY")
+    ) %>%
+    mutate(across(c(height_cm, width_cm), ~as.integer(.x)),
+           multi_piece=FALSE,
+           painted_surface=ps|(!ps & !overall)) %>%
+    select(object_id, height_cm, width_cm, painted_surface, multi_piece)
+  
+  return(df1)
+}
+
+
+## Function to extract shape
+extract_shape <- function(df, df_dim) {
+  df %>% 
+    select(object_id, dimensions) %>%
+    left_join(df_dim, by="object_id") %>%
+    mutate(
+      diameter=str_detect(dimensions, "[Dd]iameter|[Rr]ound"),
+      shape=case_when(
+        diameter                                               ~ "Circle",
+        str_detect(dimensions, "[Ii]rregular [Oo]val|[Oo]val") ~ "Oval",
+        str_detect(dimensions, "[Ii]rregular")                 ~ "Irregular",
+        str_detect(dimensions, "[Ss]hape|[Aa]rched")           ~ "Arched",
+        #within 5% is considered square
+        between(height_cm, 0.95*width_cm, 1.05*width_cm)       ~ "Square",
+        between(width_cm, 0.95*height_cm, 1.05*height_cm)      ~ "Square",
+        TRUE                                                   ~ "Rectangle")
+    ) %>% 
+    select(!c(dimensions, diameter))
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
