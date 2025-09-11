@@ -3,7 +3,7 @@
 
 
 # Load Packages, Functions, & Data==================================================================
-pacman::p_load(here, tidyverse, httr, tidymodels, tidytext, e1071)
+pacman::p_load(here, tidyverse, httr, tidymodels, tidytext, e1071, skimr)
 
 source(here("fns_objs", "00_fn-backbone.R"))
 
@@ -48,19 +48,6 @@ count_works_by_public <- function(df, filt_pub=TRUE) {
 #### Counts by artist
 df_art_public_ns <- count_works_by_public(df_art_feat) %>% 
   filter(total>=5) #filter for artists with at least 5 artworks
-
-# df_art_public_ns <- df_art_feat %>%
-#   mutate(public=ifelse(public, "public", "non_public")) %>%
-#   count(artist_clean, public) %>%
-#   pivot_wider(names_from=public, values_from=n) %>%
-#   #need to have public artworks for app
-#   filter(!is.na(public)) %>%
-#   rowwise() %>%
-#   mutate(total=sum(non_public, public, na.rm=TRUE)) %>%
-#   ungroup() %>%
-#   arrange(desc(total), desc(public)) %>% 
-#   #use threshold of 5 artworks total
-#   filter(total>=5) 
 
 
 #### Grouped by total artworks (know they have at least 1 public artwork)
@@ -184,6 +171,7 @@ cols_mod <- c("object_id", "artist_clean", "public", "date_start", "date_end", "
 
 
 ## Title features
+### Get TF-IDF values
 df_train_tfidf <- df_train0 %>%
   select(object_id, title) %>%
   unnest_tokens(word, title) %>%
@@ -202,6 +190,12 @@ df_train_tfidf <- df_train0 %>%
   full_join(df_train0 %>% select(object_id),
             by="object_id") %>%
   mutate(across(!object_id, ~replace_na(.x, 0))) 
+
+
+### Extract and save vocabulary (for filtering app TF-IDF vocab)
+train_vocab <- df_train_tfidf %>%
+  select(!object_id) %>%
+  names()
 
 
 ## Dimension features
@@ -228,7 +222,6 @@ df_train_dims_plus <- df_train0 %>%
   extract_shape(df_train_dims)
 
 
-
 ## All metadata features
 df_train_meta <- df_train0 %>% 
   select(all_of(cols_mod)) %>% 
@@ -251,7 +244,9 @@ df_train_meta <- df_train0 %>%
   left_join(df_train_dims_plus, by="object_id") %>% 
   select(!medium) %>% 
   #title features 
-  left_join(df_train_tfidf, by="object_id") 
+  left_join(df_train_tfidf, by="object_id") %>%
+  #create factors
+  mutate(across(c(artist_clean, medium_group, shape), ~as.factor(.x)))
 
 
 ## RGB data
@@ -265,8 +260,51 @@ df_train_rgb <- df_train0 %>%
       
 
 ## Combine meta and rgb
-df_train <- df_train_meta %>%
+df_train_combined <- df_train_meta %>%
   left_join(df_train_rgb, by="object_id")
+
+
+## Checks
+### Missing values
+skim(df_train_combined) #none
+
+
+### Zero variance
+df_train_combined %>%
+  select(!c(artist_clean, medium_group, shape)) %>% #>1 value per skim()
+  purrr::map_df(var) %>%
+  t() %>%
+  as.data.frame() %>%
+  filter(V1==0)
+#B_max has zero variance --> remove
+  
+
+### Duplicate features
+#### Transpose the data frame and convert to character to handle numeric precision
+df_train_combined_t <- df_train_combined %>%
+  t() %>%
+  as.data.frame()
+
+
+#### Find duplicated rows in the transposed data (i.e., columns in the original)
+dupe_cols_logical <- duplicated(df_train_combined_t)
+
+
+#### Get the names of the duplicated columns
+train_duplicate_columns <- rownames(df_train_combined_t)[dupe_cols_logical]
+
+
+#### View the result
+train_duplicate_columns #--> remove
+
+
+#### factor level mismatch (fct_expand): artist_clean, medium_group, shape
+#app DF missing Fresco in medium_group and Irregular in shape--so added
+
+
+### Drop extraneous features
+df_train_final <- df_train_combined %>%
+  select(!c(public, B_max, all_of(train_duplicate_columns)))
 
 
 
@@ -275,20 +313,23 @@ df_train <- df_train_meta %>%
 df_app_tfidf <- df_app0 %>%
   select(object_id, title) %>%
   unnest_tokens(word, title) %>%
-  anti_join(stop_words) %>% 
-  group_by(word) %>%
-  mutate(n_title=n_distinct(object_id)) %>%
-  ungroup() %>%
-  arrange(desc(n_title)) %>% 
-  filter(n_title>=2) %>% #word must appear in 2+ titles
-  select(!n_title) %>% 
+  #filter words that are in training vocab only
+  filter(word %in% train_vocab) %>%
   count(object_id, word, sort=TRUE) %>%
-  bind_tf_idf(word, object_id, n) %>%
+  #reuse training idf b/c no app idf
+  left_join(
+    df_train_tfidf %>% 
+      pivot_longer(-object_id, names_to = "word", values_to = "tf_idf") %>%
+      group_by(word) %>%
+      summarize(idf = max(tf_idf/max(tf_idf)), .groups = 'drop'),
+    by = "word"
+  ) %>%
+  #calculate TF-IDF using TFs from app DF and IDFs from training DF
+  mutate(tf_idf = n*idf) %>%
   select(object_id, word, tf_idf) %>%
-  pivot_wider(id_cols="object_id", names_from="word", values_from="tf_idf") %>%
-  full_join(df_app0 %>% select(object_id),
-            by="object_id") %>%
-  mutate(across(!object_id, ~replace_na(.x, 0))) 
+  pivot_wider(id_cols = object_id, names_from = word, values_from = tf_idf) %>%
+  full_join(df_app0 %>% select(object_id), by = "object_id") %>%
+  mutate(across(!object_id, ~replace_na(.x, 0)))
 
 
 ## Dimension features
@@ -323,7 +364,12 @@ df_app_meta <- df_app0 %>%
   left_join(df_app_dims_plus, by="object_id") %>% 
   select(!medium) %>% 
   #title features 
-  left_join(df_app_tfidf, by="object_id")
+  left_join(df_app_tfidf, by="object_id") %>%
+  #create factors
+  mutate(across(c(artist_clean, medium_group, shape), ~as.factor(.x))) %>%
+  #add missing levels
+  mutate(medium_group=fct_expand(medium_group, "Fresco"),
+         shape=fct_expand(shape, "Irregular"))
 
 
 ## RGB data
@@ -337,8 +383,20 @@ df_app_rgb <- df_app0 %>%
 
 
 ## Combine meta and rgb
-df_app <- df_app_meta %>%
+df_app_combined <- df_app_meta %>%
   left_join(df_app_rgb, by="object_id")
+
+
+## Drop extraneous features
+### Find which duplicated training set words are in app set
+test_duplicate_columns <- intersect(train_duplicate_columns,
+                                    df_app_tfidf %>%
+                                      select(!object_id) %>%
+                                      names())
+
+### Remove extraneous features
+df_app_final <- df_app_combined %>%
+  select(!c(public, B_max, all_of(test_duplicate_columns)))
 
 
 
@@ -351,12 +409,6 @@ fp_app_feat <- here("data", paste0("03_app-feat_",
                                      Sys.Date(),
                                      ".rds"))
 
-# saveRDS(df_train, fp_train_feat)
-# saveRDS(df_app, fp_app_feat)
-
-
-
-
-
-
+# saveRDS(df_train_final, fp_train_feat)
+# saveRDS(df_app_final, fp_app_feat)
 
