@@ -3,7 +3,7 @@
 
 
 # Load Packages, Functions, and Data================================================================
-pacman::p_load(here, tidyverse, httr, tidymodels, e1071)
+pacman::p_load(here, tidyverse, httr, tidymodels, e1071, skimr)
 
 source(here("fns_objs", "00_fn-backbone.R"))
 
@@ -143,14 +143,45 @@ df_test_feat0 <- df_test %>%
 
 
 # Feature Removal===================================================================================
+## Assess missing values
+df_train_feat0 %>%
+  skim()
+#B_skew, B_kurtosis, R_skew, R_kurtosis have 1 missing value each
+
+df_train_feat0 %>%
+  filter(is.na(B_skew)) %>%
+  t()
+#missing values from same row
+
+
+## Remove missing value
+df_train_feat1 <- df_train_feat0 %>%
+  filter(complete.cases(.))
+
+
 ## Assess collinearity
 ### Compute pairwise correlations
-df_train_corr <- df_train_feat0 %>% 
+df_train_corr <- df_train_feat1 %>% 
   select(starts_with(c("R_", "G_", "B_"))) %>%
   cor(method="spearman") %>%
   abs() %>%
   round(3) %>%
-  as.data.frame() 
+  as.data.frame()
+
+
+### Aside: Check for duplicates--------------------
+df_train_corr %>%
+  rownames_to_column("var1") %>%
+  pivot_longer(cols=!var1, names_to="var2", values_to="corr") %>%
+  mutate(vars_same=var1==var2) %>%
+  filter(corr==1, !vars_same) 
+#B_min and B_range
+
+df_train_feat1 %>%
+  select(B_min, B_range) %>%
+  head()
+#not duplicates
+#--------------------------------------------------
 
 
 ### Find fields that contain at least one highly correlated pair
@@ -225,7 +256,7 @@ feat_collinear <- df_train_corr_sig %>%
 
 
 ### Find zero variance features
-feat_zv <- df_train_feat0 %>% 
+feat_zv <- df_train_feat1 %>% 
   select(starts_with(c("R_", "G_", "B_"))) %>%
   purrr::map_df(var) %>%
   pivot_longer(cols=everything(), names_to="feature") %>%
@@ -235,7 +266,7 @@ feat_zv <- df_train_feat0 %>%
 
 
 ## Remove highly collinear & zero variance features & set artist_clean to fct
-df_train_feat <- df_train_feat0 %>% 
+df_train_feat <- df_train_feat1 %>% 
   select(!all_of(c(feat_collinear, feat_zv))) %>%
   mutate(artist_clean=as.factor(artist_clean))
 
