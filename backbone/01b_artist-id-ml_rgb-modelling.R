@@ -201,7 +201,6 @@ params_mlog_best <- select_best(tune_results_mlog, metric="accuracy")
 
 
 
-
 ## Evaluate on test set--------------------
 ### Finalize best worflow & model (RF)
 #### Finalize workflow
@@ -214,8 +213,17 @@ final_fit_rf <- fit(final_rf, data=df_train_unprepped)
 
 ### Apply best model to test set
 df_pred_rf <- predict(object=final_fit_rf,
-                       new_data=df_test_unprepped,
-                       type="class")
+                      new_data=df_test_unprepped,
+                      type="class")
+
+
+### Assess accuracy of predictions
+df_test_pred <- df_test_unprepped %>%
+  select(object_id, obs="artist_clean") %>%
+  bind_cols(df_pred_rf %>% rename(pred=".pred_class")) %>% 
+  # accuracy(obs, pred) %>%
+  mutate(match=obs==pred)
+#24.8%
 
 
 ### Get class probabilities
@@ -223,32 +231,120 @@ df_pred_probs_rf <- predict(final_fit_rf,
                             new_data=df_test_unprepped,
                             type="prob")
 
-#NOTE: need to pair with object_id --> use bind_cols()
 
-# How to get top x preds
-get_top_k_preds <- function(prob_row, class_labels, k = 3) {
-  # Sort class probabilities in descending order
-  top_k <- sort(prob_row, decreasing = TRUE)[1:k]
-  tibble(
-    artist = names(top_k),
-    probability = as.numeric(top_k)
+
+# How to get top x preds for the whole test set
+## Pull in object_ids & true label
+df_pred_probs_obs <- df_test_unprepped %>%
+  select(object_id, obs="artist_clean") %>%
+  bind_cols(df_pred_probs_rf)
+
+get_top_k_preds <- function(df, k = 3) {
+  # Assume df columns: 1=object_id, 2=obs, 3+: predicted probabilities
+  
+  object_ids <- df[[1]]
+  obs <- df[[2]]
+  prob_df <- df[, -(1:2)]
+  
+  # Ensure probabilities are numeric
+  prob_df <- as.data.frame(lapply(prob_df, as.numeric))
+  
+  # For each row, get top-k predictions in long format
+  top_k_long <- purrr::map_dfr(seq_len(nrow(prob_df)), function(i) {
+    prob_vector <- as.numeric(prob_df[i, ])
+    names(prob_vector) <- colnames(prob_df)
+    top_k <- sort(prob_vector, decreasing = TRUE)[1:k]
+    
+    tibble(
+      object_id = object_ids[i],
+      obs = obs[i],
+      rank = seq_len(k),
+      artist = names(top_k) %>% 
+        stringr::str_remove("^\\.pred_") %>%
+        stringr::str_replace_all("\\.", " "),
+      prob = as.numeric(top_k)
+    )
+  })
+  
+  # Pivot to wide format
+  top_k_wide <- tidyr::pivot_wider(
+    top_k_long,
+    id_cols = c(object_id, obs),
+    names_from = rank,
+    values_from = c(artist, prob),
+    names_glue = "{.value}_top{rank}"
   )
+  
+  # Calculate match indicators
+  top_k_wide <- top_k_wide %>%
+    rowwise() %>%
+    mutate(
+      # Logical: does top1 artist match obs?
+      top_match = (artist_top1 == obs),
+      
+      # Logical: does any artist in top-k match obs?
+      any_match = any(c_across(starts_with("artist_top")) == obs),
+      
+      # Integer: which rank matches obs? NA if none
+      rank_match = {
+        matches <- which(c_across(starts_with("artist_top")) == obs)
+        if (length(matches) == 0) NA_integer_ else matches[1]
+      }
+    ) %>%
+    ungroup() %>%
+    # Reorder columns: object_id, obs, top_match, any_match, rank_match, then rest
+    select(object_id, obs, top_match, any_match, rank_match, everything())
+  
+  return(top_k_wide)
 }
 
-# Assuming you predict one row at a time
-class_labels <- colnames(df_pred_probs_rf)
-top_preds <- get_top_k_preds(df_pred_probs_rf[1, ], class_labels, k = 3)
-print(top_preds)
+
+df_top_preds <- get_top_k_preds(df_pred_probs_obs, k=3)
+df_top_preds %>%
+  filter(row_number()==1) %>%
+  select(contains("_top")) %>%
+  pivot_longer(cols=everything(), names_to=c(".value", "rank"), 
+               names_sep="_") %>%
+  rename(probability="prob") %>%
+  select(!rank)
+
 
 
 
 # Predict on new image
 ## Load image, process image to RGBs, calculate stats, remove zvs and high corrs
 ## Run prediction
-# Predict class probabilities
-preds <- predict(model, new_image_features, type = "prob")
+# Predict all class probabilities
+single_artwork <- df_test_unprepped %>%
+  select(!c(object_id, artist_clean)) %>%
+  filter(row_number()==1) %>%
+  mutate(object_id=0)
 
-# Get top-3 predictions
-top_preds <- get_top_k_preds(preds[1, ], colnames(preds), k = 3)
+preds <- predict(final_fit_rf, single_artwork, type = "prob")
 
+
+# Get top k predictions
+## Return probs on single artwork
+get_top_k_preds_for_artwork <- function(model, new_artwork_df, k = 3) {
+  # Predict probabilities for the single artwork
+  prob_df <- predict(model, new_data = new_artwork_df, type = "prob")
+  
+  # Convert to named numeric vector
+  prob_vector <- as.numeric(prob_df[1, ])
+  names(prob_vector) <- colnames(prob_df)
+  
+  # Get top-k predictions as tibble
+  top_k <- sort(prob_vector, decreasing = TRUE)[1:k]
+  
+  tibble(
+    artist = names(top_k) %>% 
+      str_remove("^\\.pred_") %>% 
+      str_replace_all("\\.", " "),
+    probability = as.numeric(top_k)
+  )
+}
+
+
+top_preds <- get_top_k_preds_for_artwork(final_fit_rf, single_artwork, k=9)
+print(top_preds)
 

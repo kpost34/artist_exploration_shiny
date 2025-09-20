@@ -191,7 +191,7 @@ df_train_corr_collin <- df_train_corr %>%
   select(where(~sum(.x, na.rm=TRUE)>0))
 
 
-### Find highly correlated pairs and whether 
+### Find highly correlated pairs  
 df_train_corr_sig <- names(df_train_corr_collin) %>%
   purrr::map_df(function(var) {
     df_train_corr %>%
