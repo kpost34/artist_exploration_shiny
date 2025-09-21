@@ -220,7 +220,7 @@ process_image_to_vector <- function(img_url, size = "100x100") {
     FALSE
   })
   
-  if (!success) return(NULL)
+  if(!success) return(NULL)
   
   # Try to read and process the image
   img <- tryCatch({
@@ -369,6 +369,89 @@ extract_rgb_bins <- function(vec) {
     B_bin4=count_bin(B, 4), B_bin5=count_bin(B, 5)
   )
   
+}
+
+
+## Prediction functions-----------------------------
+### Function get get the top k predictions when running finalized workflow on test data
+get_top_k_preds <- function(df, k = 3) {
+  # Assume df columns: 1=object_id, 2=obs, 3+: predicted probabilities
+  
+  object_ids <- df[[1]]
+  obs <- df[[2]]
+  prob_df <- df[, -(1:2)]
+  
+  # Ensure probabilities are numeric
+  prob_df <- as.data.frame(lapply(prob_df, as.numeric))
+  
+  # For each row, get top-k predictions in long format
+  top_k_long <- purrr::map_dfr(seq_len(nrow(prob_df)), function(i) {
+    prob_vector <- as.numeric(prob_df[i, ])
+    names(prob_vector) <- colnames(prob_df)
+    top_k <- sort(prob_vector, decreasing = TRUE)[1:k]
+    
+    tibble(
+      object_id = object_ids[i],
+      obs = obs[i],
+      rank = seq_len(k),
+      artist = names(top_k) %>% 
+        stringr::str_remove("^\\.pred_") %>%
+        stringr::str_replace_all("\\.", " "),
+      prob = as.numeric(top_k)
+    )
+  })
+  
+  # Pivot to wide format
+  top_k_wide <- tidyr::pivot_wider(
+    top_k_long,
+    id_cols = c(object_id, obs),
+    names_from = rank,
+    values_from = c(artist, prob),
+    names_glue = "{.value}_top{rank}"
+  )
+  
+  # Calculate match indicators
+  top_k_wide <- top_k_wide %>%
+    rowwise() %>%
+    mutate(
+      # Logical: does top1 artist match obs?
+      top_match = (artist_top1 == obs),
+      
+      # Logical: does any artist in top-k match obs?
+      any_match = any(c_across(starts_with("artist_top")) == obs),
+      
+      # Integer: which rank matches obs? NA if none
+      rank_match = {
+        matches <- which(c_across(starts_with("artist_top")) == obs)
+        if (length(matches) == 0) NA_integer_ else matches[1]
+      }
+    ) %>%
+    ungroup() %>%
+    # Reorder columns: object_id, obs, top_match, any_match, rank_match, then rest
+    select(object_id, obs, top_match, any_match, rank_match, everything())
+  
+  return(top_k_wide)
+}
+
+
+### Function to return probs on single artwork
+get_top_k_preds_for_artwork <- function(model, new_artwork_df, k = 3) {
+  # Predict probabilities for the single artwork
+  prob_df <- predict(model, new_data = new_artwork_df, type = "prob")
+  
+  # Convert to named numeric vector
+  prob_vector <- as.numeric(prob_df[1, ])
+  names(prob_vector) <- colnames(prob_df)
+  
+  # Get top-k predictions as tibble
+  top_k <- sort(prob_vector, decreasing = TRUE)[1:k]
+  
+  tibble(
+    artist = names(top_k) %>% 
+      str_remove("^\\.pred_") %>% 
+      str_replace_all("\\.", " "),
+    probability = as.numeric(top_k)
+  )
 }
 
 

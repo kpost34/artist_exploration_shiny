@@ -3,7 +3,7 @@
 
 
 # Load Packages, Functions, and Data================================================================
-pacman::p_load(here, tidyverse, httr, tidymodels)
+pacman::p_load(here, tidyverse, httr, tidymodels, magick, e1071)
 
 source(here("fns_objs", "00_fn-backbone.R"))
 
@@ -23,7 +23,7 @@ df_test_unprepped <- readRDS(fp_test_feat) %>%
 
 
 
-# Build, Fit, & Assess Models======================================================================
+# Build and Fit Models==============================================================================
 ## Create folds--------------------
 set.seed(6) #splits across folds if prop=0.8 (10+ artworks)
 folds_cv <- vfold_cv(df_train_unprepped, v = 3, strata = artist_clean)
@@ -201,28 +201,27 @@ params_mlog_best <- select_best(tune_results_mlog, metric="accuracy")
 
 
 
-## Evaluate on test set--------------------
-### Finalize best worflow & model (RF)
-#### Finalize workflow
+# Evaluate Best Model on Test Set==================================================================
+## Finalize best workflow & model (RF)-------------------
+### Finalize workflow
 final_rf <- finalize_workflow(workflow_rf, params_rf_best)
 
 
-#### Fit final model (on all training data)
+### Fit final model (on all training data)
 final_fit_rf <- fit(final_rf, data=df_train_unprepped) 
 
 
+## Assess predictions-------------------
 ### Apply best model to test set
 df_pred_rf <- predict(object=final_fit_rf,
                       new_data=df_test_unprepped,
                       type="class")
 
 
-### Assess accuracy of predictions
-df_test_pred <- df_test_unprepped %>%
+### Overall accuracy on test set
+df_test_unprepped %>%
   select(object_id, obs="artist_clean") %>%
-  bind_cols(df_pred_rf %>% rename(pred=".pred_class")) %>% 
-  # accuracy(obs, pred) %>%
-  mutate(match=obs==pred)
+  bind_cols(df_pred_rf %>% rename(pred=".pred_class"))
 #24.8%
 
 
@@ -232,119 +231,61 @@ df_pred_probs_rf <- predict(final_fit_rf,
                             type="prob")
 
 
-
-# How to get top x preds for the whole test set
-## Pull in object_ids & true label
+### Get top x predictions for the whole test set
+#### Pull in object_ids & true label
 df_pred_probs_obs <- df_test_unprepped %>%
   select(object_id, obs="artist_clean") %>%
   bind_cols(df_pred_probs_rf)
 
-get_top_k_preds <- function(df, k = 3) {
-  # Assume df columns: 1=object_id, 2=obs, 3+: predicted probabilities
-  
-  object_ids <- df[[1]]
-  obs <- df[[2]]
-  prob_df <- df[, -(1:2)]
-  
-  # Ensure probabilities are numeric
-  prob_df <- as.data.frame(lapply(prob_df, as.numeric))
-  
-  # For each row, get top-k predictions in long format
-  top_k_long <- purrr::map_dfr(seq_len(nrow(prob_df)), function(i) {
-    prob_vector <- as.numeric(prob_df[i, ])
-    names(prob_vector) <- colnames(prob_df)
-    top_k <- sort(prob_vector, decreasing = TRUE)[1:k]
-    
-    tibble(
-      object_id = object_ids[i],
-      obs = obs[i],
-      rank = seq_len(k),
-      artist = names(top_k) %>% 
-        stringr::str_remove("^\\.pred_") %>%
-        stringr::str_replace_all("\\.", " "),
-      prob = as.numeric(top_k)
-    )
-  })
-  
-  # Pivot to wide format
-  top_k_wide <- tidyr::pivot_wider(
-    top_k_long,
-    id_cols = c(object_id, obs),
-    names_from = rank,
-    values_from = c(artist, prob),
-    names_glue = "{.value}_top{rank}"
-  )
-  
-  # Calculate match indicators
-  top_k_wide <- top_k_wide %>%
-    rowwise() %>%
-    mutate(
-      # Logical: does top1 artist match obs?
-      top_match = (artist_top1 == obs),
-      
-      # Logical: does any artist in top-k match obs?
-      any_match = any(c_across(starts_with("artist_top")) == obs),
-      
-      # Integer: which rank matches obs? NA if none
-      rank_match = {
-        matches <- which(c_across(starts_with("artist_top")) == obs)
-        if (length(matches) == 0) NA_integer_ else matches[1]
-      }
-    ) %>%
-    ungroup() %>%
-    # Reorder columns: object_id, obs, top_match, any_match, rank_match, then rest
-    select(object_id, obs, top_match, any_match, rank_match, everything())
-  
-  return(top_k_wide)
-}
 
-
+### Grab top predictions, their probabilities, and matches
 df_top_preds <- get_top_k_preds(df_pred_probs_obs, k=3)
-df_top_preds %>%
-  filter(row_number()==1) %>%
-  select(contains("_top")) %>%
-  pivot_longer(cols=everything(), names_to=c(".value", "rank"), 
-               names_sep="_") %>%
-  rename(probability="prob") %>%
-  select(!rank)
 
 
 
-
-# Predict on new image
-## Load image, process image to RGBs, calculate stats, remove zvs and high corrs
-## Run prediction
-# Predict all class probabilities
-single_artwork <- df_test_unprepped %>%
-  select(!c(object_id, artist_clean)) %>%
-  filter(row_number()==1) %>%
-  mutate(object_id=0)
-
-preds <- predict(final_fit_rf, single_artwork, type = "prob")
+# Predict on New Image==============================================================================
+## Load and extract image features-------------------
+### Get image fp
+fp_img_new <- here("img", "starry night.jpeg")
 
 
-# Get top k predictions
-## Return probs on single artwork
-get_top_k_preds_for_artwork <- function(model, new_artwork_df, k = 3) {
-  # Predict probabilities for the single artwork
-  prob_df <- predict(model, new_data = new_artwork_df, type = "prob")
-  
-  # Convert to named numeric vector
-  prob_vector <- as.numeric(prob_df[1, ])
-  names(prob_vector) <- colnames(prob_df)
-  
-  # Get top-k predictions as tibble
-  top_k <- sort(prob_vector, decreasing = TRUE)[1:k]
-  
-  tibble(
-    artist = names(top_k) %>% 
-      str_remove("^\\.pred_") %>% 
-      str_replace_all("\\.", " "),
-    probability = as.numeric(top_k)
-  )
-}
+### Import and process image
+img_new_processed <- fp_img_new %>%
+  image_read() %>%
+  image_strip() %>%
+  image_resize("100x100") %>%
+  image_extent("100x100", gravity="center", color="white")
 
 
-top_preds <- get_top_k_preds_for_artwork(final_fit_rf, single_artwork, k=9)
-print(top_preds)
+### Convert to feature vector
+img_new_feat <- img_new_processed %>%
+  image_data() %>% 
+  as.vector() %>%
+  as.integer()
+
+
+### Extract features
+#vector of cols to remove (high collinearity or zero variance)
+feat_remove <- c("B_bin1", "B_mean", "G_bin1", "R_mean", "B_sd", "G_sd", "R_bin1", "R_sd",
+                 "R_range", "B_max")
+
+#extraction, combination, and removal
+df_img_new_feat <- bind_cols(
+  object_id=0,
+  extract_rgb_features(img_new_feat),
+  extract_rgb_bins(img_new_feat)
+) %>%
+select(!all_of(feat_remove))
+
+
+
+## Run prediction-------------------
+### Predict all class probabilities
+preds_img_new <- predict(final_fit_rf, df_img_new_feat, type = "prob")
+
+
+### Get top k predictions
+top_preds_img_new <- get_top_k_preds_for_artwork(final_fit_rf, df_img_new_feat, k=5)
+print(top_preds_img_new)
+#Van Gogh is 3
 
