@@ -27,7 +27,7 @@ txt_game2 <- "Difficulty level affects the response type, number of options, and
 
 
 
-# Artist Info=======================================================================================
+# 02: Art Exploration===============================================================================
 ## DF for selectors (artist info)
 df_artist_info <- tribble(
   ~movement, ~nationality, ~artist, 
@@ -144,7 +144,7 @@ df_artist_bios <- tibble(
 fp_art_explore <- list.files(here("data"), "^00_art-exploration", full.names=TRUE) %>% 
   sort(decreasing=TRUE)
 
-df_art_info_public <- readRDS(fp_art_explore) %>%
+df_artist_info_public <- readRDS(fp_art_explore) %>%
   select(!c(bio, period)) %>%
   filter(nchar(date) > 0, #must have date/year info
          classification=="Paintings") %>% 
@@ -162,12 +162,14 @@ cols_art_info <- c("object_id", "title", "artist", "artist_simple", "classificat
 
 df_art_info_public_full <- df_artist_info_public %>%
   left_join(df_artist_bios) %>%
-  left_join(df_art_info) %>%
+  left_join(df_artist_info) %>%
   arrange(movement, nationality, artist) %>%
   select(all_of(cols_art_info))
-  
 
-df_art_info_public_full
+
+
+
+  
 
 
 

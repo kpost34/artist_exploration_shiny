@@ -25,6 +25,41 @@ build_q_a_block <- function(id, n) {
 
 
 
+# Function to process loaded image
+process_loaded_image <- function(fp_img) {
+  img_processed <- fp_img %>%
+    image_read() %>%
+    image_strip() %>%
+    image_resize("100x100") %>%
+    image_extent("100x100", gravity="center", color="white") %>%
+    image_data() %>%
+    as.vector() %>%
+    as.integer()
+  
+  return(img_processed)
+}
+
+
+
+# Function to extract RGB stats and bins from image
+extract_final_rgb_feat <- function(img) {
+  # Create vector of features to remove
+  feat_remove <- c("B_bin1", "B_mean", "G_bin1", "R_mean", "B_sd", "G_sd", "R_bin1", "R_sd",
+                   "R_range", "B_max")
+  
+  # Extract, combine, and prune features
+  df_img_feat <- bind_cols(
+    object_id=0,
+    extract_rgb_features(img), 
+    extract_rgb_bins(img)
+  ) %>%
+  select(!all_of(feat_remove))
+  
+  return(df_img_feat)
+}
+
+
+
 # Functions to convert artist name syntax
 convert_artist_name <- function(names) {
   formatted_names <- purrr::map_chr(names, format_name)

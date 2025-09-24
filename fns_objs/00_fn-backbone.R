@@ -435,7 +435,7 @@ get_top_k_preds <- function(df, k = 3) {
 
 
 ### Function to return probs on single artwork
-get_top_k_preds_for_artwork <- function(model, new_artwork_df, k = 3) {
+get_top_k_preds_for_artwork <- function(new_artwork_df, model, k = 3) {
   # Predict probabilities for the single artwork
   prob_df <- predict(model, new_data = new_artwork_df, type = "prob")
   
