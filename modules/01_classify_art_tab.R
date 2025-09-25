@@ -33,7 +33,7 @@ classifyUI <- function(id) {
       column(1),
       column(4,
         br(),
-        h4(strong("Sample Artwork")),
+        uiOutput(ns("ui_txt_artwork")),
         imageOutput(ns("out_img_artwork"),
                     height="300px", 
                     width="300px")
@@ -50,8 +50,8 @@ classifyUI <- function(id) {
         br(),
         
         #percent breakdown
-        radioButtons(ns("rad_pct"), "Include percent confidence?",
-                     choices=c("Yes", "No"), selected="No"
+        radioButtons(ns("rad_prob"), "Include probabilities?",
+                     choices=c("Yes", "No"), selected="Yes"
         )
       )
     ),
@@ -66,10 +66,11 @@ classifyUI <- function(id) {
 
 
 # Server============================================================================================
-classifyServer <- function(id) {
+classifyServer <- function(id, mod) {
   moduleServer(id, function(input, output, session) {
     
-    ## Image rendering/display
+    ## Image rendering/display & title
+    #image
     output$out_img_artwork <- renderImage({
       req(input$file_img)
       if(is.null(input$file_img)) {
@@ -83,36 +84,55 @@ classifyServer <- function(id) {
            width=400,
            alt = "Uploaded Image")
     }, deleteFile = FALSE)
+    
+    #title
+    output$ui_txt_artwork <- renderUI({
+      req(input$file_img)
+      h4(
+        strong("Upoaded Artwork")
+      )
+    })
   
     
     ## Run algorithm
-    #placeholder for now
-    df <- reactive({
+    ### Process image and extract features
+    df_feat <- reactive({
       req(input$file_img)
-      tibble(
-        rank=1:5,
-        artist=c("Van Gogh, Vincent", "Monet, Claude", "Picasso, Pablo", "Manet, Édouard", "Dalí, Salvador"),
-        nationality=c("Dutch", "French", "Spanish", "French", "Spanish"),
-        pct_confidence=c(90, 5, 2, 2, 1)
-      )
+      input$file_img$datapath %>%
+        process_loaded_image() %>%
+        extract_final_rgb_feat()
+      # tibble(
+      #   rank=1:5,
+      #   artist=c("Van Gogh, Vincent", "Monet, Claude", "Picasso, Pablo", "Manet, Édouard", "Dalí, Salvador"),
+      #   nationality=c("Dutch", "French", "Spanish", "French", "Spanish"),
+      #   pct_confidence=c(90, 5, 2, 2, 1)
+      # )
+    })
+    
+    
+    ### Make predictions
+    df_pred <- reactive({
+      req(df_feat())
+      df_feat() %>%
+        get_top_k_preds_for_artwork(model=mod, k=input$sld_n)
     })
     
     
     ## Filter output
-    df_filt <- reactive({
-      req(df())
-      df() %>%
-        filter(rank <= input$sld_n) %>%
-        {if(input$rad_pct=="No") select(., !pct_confidence) 
-          else if(input$rad_pct=="Yes") .}
+    df_pred_filt <- reactive({
+      req(df_pred())
+      df_pred() %>%
+        # filter(rank <= input$sld_n) %>%
+        {if(input$rad_prob=="No") select(., !probability) 
+          else if(input$rad_prob=="Yes") .}
     })
     
     
     
     ## Run algorithm & generate output
     output$tab_artist <- renderDT({
-      req(df_filt())
-      DT::datatable(df_filt(),
+      req(df_pred_filt())
+      DT::datatable(df_pred_filt(),
                     rownames=FALSE,
                     option=list(dom="t"))
     })

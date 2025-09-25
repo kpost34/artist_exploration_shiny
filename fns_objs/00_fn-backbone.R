@@ -451,7 +451,9 @@ get_top_k_preds_for_artwork <- function(new_artwork_df, model, k = 3) {
       str_remove("^\\.pred_") %>% 
       str_replace_all("\\.", " "),
     probability = as.numeric(top_k)
-  )
+  ) %>%
+    mutate(rank=min_rank(desc(probability)), .before="artist") %>%
+    mutate(probability=round(probability, 3))
 }
 
 
