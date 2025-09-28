@@ -7,13 +7,11 @@ pacman::p_load(here, tidyverse, httr, tidymodels, future)
 
 source(here("fns_objs", "00_fn-backbone.R"))
 
-fp_train_feat <- here("data", paste0("03_train-feat_",
-                                     Sys.Date(),
-                                     ".rds"))
+fp_train_feat <- grab_newest_fp(dir=here("data"),
+                                patt="^03_train-feat_")
 
-fp_app_feat <- here("data", paste0("03_app-feat_",
-                                   Sys.Date(),
-                                   ".rds"))
+fp_app_feat <- grab_newest_fp(dir=here("data"),
+                              patt="^03_app-feat_")
 
 df_train_final <- readRDS(fp_train_feat)
 df_app_final <- readRDS(fp_app_feat)
@@ -27,90 +25,8 @@ set.seed(1)
 folds_cv <- vfold_cv(df_train_final, v = 3, strata = artist_clean)
 #warning: unstratified resampling
 
-
-check_n_fold <- function(cv_folds, type="analysis") {
-  if(!type %in% c("analysis", "assess")) {
-    stop("Error: Argument 'type' must be 'analysis' or 'assess'")
-  }
-  
-  df <- cv_folds %>%
-    {if(type=="analysis") mutate(., data=map(splits, analysis)) else .} %>%
-    {if(type=="assess") mutate(., data=map(splits, assessment)) else .} %>%
-    unnest(data) %>%
-    select(!splits) %>% 
-    group_by(artist_clean) %>% 
-    summarize(n_folds=n_distinct(id)) %>%
-    summarize(n_artists=n(),
-              min_folds=min(n_folds)) %>%
-    mutate(set=type, .before="n_artists")
-  
-  return(df)
-}
-
-check_analysis_assess <- function(df, n_folds) {
-  folds_cv <- suppressWarnings(vfold_cv(df, v=n_folds, strata=artist_clean))
-  
-  df_analysis <- check_n_fold(folds_cv, type="analysis") %>%
-    mutate(meet_thresh=min_folds==n_folds)
-  
-  df_assess <- check_n_fold(folds_cv, type="assess") %>%
-    mutate(meet_thresh=min_folds==n_folds-1)
-  
-  df <- bind_rows(df_analysis, df_assess)
-  
-  hit_thresh <- sum(df$meet_thresh)==2
-  
-  return(list(hit_thresh=hit_thresh,
-              summary=df))
-}
-
-
-iterate_fold_check <- function(df, n_folds, seed_min, seed_max) {
-  for(i in seed_min: seed_max) {
-    set.seed(i)
-    list_result <- check_analysis_assess(df, n_folds)
-    
-    if(list_result$hit_thresh){
-      return(append(list(seed=i), list_result))
-    }
-    print(i)
-  }
-  # return(list_result)
-}
-
-set.seed(1)
-check_n_fold(folds_cv, "analysis")
-check_n_fold(folds_cv, "assess")
 check_analysis_assess(df=df_train_final, n_folds=3)
-# iterate_fold_check(df_train_final, 3, 10000, 15000)
-
-
-
-
-#check artists per fold
-n_folds <- 3
-folds_cv %>%
-  mutate(data=map(splits, analysis)) %>%
-  unnest(data) %>%
-  select(!splits) %>% 
-  group_by(artist_clean) %>% 
-  summarize(n_folds=n_distinct(id)) %>%
-  summarize(n_artists=n(),
-            min_folds=min(n_folds)) %>%
-  mutate(set="analysis", .before="n_artists") %>%
-  mutate(meet_thresh=min_folds==n_folds)
-
-folds_cv %>%
-  mutate(data=map(splits, assessment)) %>%
-  unnest(data) %>%
-  select(!splits) %>% 
-  group_by(artist_clean) %>% 
-  summarize(n_folds=n_distinct(id)) %>%
-  summarize(n_artists=n(),
-            min_folds=min(n_folds))
-
-
-
+#meets criteria for cross-validation
 
 
 ## Create recipe--------------------
@@ -160,9 +76,8 @@ tune_results_rf <- tune_grid(
 )
 
 
-
-# ### Select the best parameters
-show_best(tune_results_rf, metric="accuracy", n=5) #46.6 %
+### Select the best parameters
+show_best(tune_results_rf, metric="accuracy", n=5) #46-48 %
 params_rf_best <- select_best(tune_results_rf, metric="accuracy")
 
 
@@ -221,107 +136,38 @@ tune_results_xgb <- tune_grid(
   resamples=folds_cv,
   grid=grid_xgb,
   metrics=metric_set(accuracy, kap, roc_auc),
-  control=control_grid(save_pred=TRUE)
+  control=control_grid(
+    save_pred=TRUE,
+    verbose=TRUE)
 )
 
 
 ### Select the best parameters
-show_best(tune_results_xgb, metric="accuracy", n=5) 
+show_best(tune_results_xgb, metric="accuracy", n=5) #21.9%
 params_xgb_best <- select_best(tune_results_xgb, metric="accuracy")
 
 
-### Finalize workflow
-final_xgb <- finalize_workflow(workflow_xgb, params_xgb_best)
+
+# Select Best Model and Save For App================================================================
+## Finalize workflow
+final_rf <- finalize_workflow(workflow_rf, params_rf_best)
 
 
-### Fit final model (on all training data)
-final_fit_xgb <- fit(final_xgb, data=df_train_unprepped) 
+## Fit final model (on all training data)
+final_fit_rf <- fit(final_rf, data=df_train_final) 
 
 
-
-
-
-
-
-
-
-# Archive
-make_stratified_cv <- function(data, label_col, v = 2, max_attempts = 1000, verbose = TRUE) {
-  label_col <- rlang::ensym(label_col)
-  label_name <- rlang::as_name(label_col)
-  all_labels <- unique(data[[label_name]])
-  
-  for (seed in 1:max_attempts) {
-    set.seed(seed)
-    
-    # Assign fold numbers per artist
-    df_folds <- data %>%
-      group_by(!!label_col) %>%
-      mutate(fold = sample(rep(1:v, length.out = n()))) %>%
-      ungroup()
-    
-    # Check: each fold's *assessment set* must include all artist labels
-    fold_valid <- TRUE
-    for (k in 1:v) {
-      fold_artists <- df_folds %>%
-        filter(fold == k) %>%
-        pull(!!label_col) %>%
-        unique()
-      
-      if (length(setdiff(all_labels, fold_artists)) > 0) {
-        fold_valid <- FALSE
-        break
-      }
-    }
-    
-    if (fold_valid) {
-      if (verbose) message("Found seed: ", seed)
-      
-      # Build rsplit objects
-      splits <- vector("list", length = v)
-      for (k in 1:v) {
-        idx_analysis <- which(df_folds$fold != k)
-        idx_assess <- which(df_folds$fold == k)
-        
-        splits[[k]] <- rsample::make_splits(
-          list(analysis = idx_analysis, assessment = idx_assess),
-          data = df_folds
-        )
-      }
-      
-      # Wrap into vfold_cv-like object
-      cv_obj <- tibble::tibble(
-        splits = splits,
-        id = paste0("Fold", seq_along(splits))
-      )
-      
-      attr(cv_obj, "class") <- c("vfold_cv", "rset")
-      attr(cv_obj, "v") <- v
-      attr(cv_obj, "repeats") <- 1
-      attr(cv_obj, "rset_info") <- tibble::tibble(
-        v = v,
-        repeats = 1,
-        strata = label_name,
-        id = NA_character_
-      )
-      
-      # Return both folds and stratified data
-      return(list(
-        folds = cv_obj,
-        data = df_folds %>% select(-fold)
-      ))
-    }
-  }
-  
-  stop("No valid stratified seed found in ", max_attempts, " attempts.")
-}
+## Save model to file
+fn_model <- paste0("03_artist_id-ml_rgb-meta", "_", Sys.Date(), ".rds")
+# saveRDS(final_fit_rf, here("models", fn_model))
 
 
 
-cv_out <- make_stratified_cv(df_train_final, label_col = artist_clean, v=4)
 
-cv_folds <- cv_out$folds
-df_stratified <- cv_out$data
+
+
+
+
 
 
 
