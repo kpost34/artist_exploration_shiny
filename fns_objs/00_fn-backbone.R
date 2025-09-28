@@ -628,6 +628,49 @@ extract_shape <- function(df, df_dim) {
 
 
 
+## Cross-validation Functions-----------------------------
+### Function to check the number of folds
+check_n_fold <- function(cv_folds, type="analysis") {
+  if(!type %in% c("analysis", "assess")) {
+    stop("Error: Argument 'type' must be 'analysis' or 'assess'")
+  }
+  
+  df <- cv_folds %>%
+    {if(type=="analysis") mutate(., data=map(splits, analysis)) else .} %>%
+    {if(type=="assess") mutate(., data=map(splits, assessment)) else .} %>%
+    unnest(data) %>%
+    select(!splits) %>% 
+    group_by(artist_clean) %>% 
+    summarize(n_folds=n_distinct(id)) %>%
+    summarize(n_artists=n(),
+              min_folds=min(n_folds)) %>%
+    mutate(set=type, .before="n_artists")
+  
+  return(df)
+}
+
+
+### Function to check folds for analysis & assessment sets
+check_analysis_assess <- function(df, n_folds) {
+  folds_cv <- suppressWarnings(vfold_cv(df, v=n_folds, strata=artist_clean))
+  
+  df_analysis <- check_n_fold(folds_cv, type="analysis") %>%
+    mutate(meet_thresh=min_folds==n_folds)
+  
+  df_assess <- check_n_fold(folds_cv, type="assess") %>%
+    mutate(meet_thresh=min_folds==n_folds-1)
+  
+  df <- bind_rows(df_analysis, df_assess)
+  
+  hit_thresh <- sum(df$meet_thresh)==2
+  
+  return(list(hit_thresh=hit_thresh,
+              summary=df))
+}
+
+
+
+
 
 
 

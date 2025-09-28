@@ -141,10 +141,13 @@ df_artist_bios <- tibble(
 
 ### Join artist info and bios with art info for complete df
 #### Read in art info (for public domain art)
-fp_art_explore <- list.files(here("data"), "^00_art-exploration", full.names=TRUE) %>% 
-  sort(decreasing=TRUE)
+fp_art_explore <- grab_newest_fp(dir=here("data"), patt="^00_art-exploration")
+                    
+# fp_art_explore <- list.files(here("data"), "^00_art-exploration", full.names=TRUE) %>% 
+#   sort(decreasing=TRUE)
 
-df_artist_info_public <- readRDS(fp_art_explore) %>%
+df_artist_info0 <- readRDS(fp_art_explore) 
+df_artist_info_public <- df_artist_info0 %>%
   select(!c(bio, period)) %>%
   filter(nchar(date) > 0, #must have date/year info
          classification=="Paintings") %>% 
@@ -168,8 +171,22 @@ df_art_info_public_full <- df_artist_info_public %>%
 
 
 
+# 03: Game==========================================================================================
+## Read in app data
+fp_game <- grab_newest_fp(dir=here("data"),
+                          patt="^03_app-feat_")
 
-  
+df_game0 <- readRDS(fp_game)
+
+df_game <- df_artist_info0 %>%
+  select(object_id, image_url) %>%
+  inner_join(
+    df_game0 %>%
+      select(object_id, artist_clean)
+  )
+
+
+vec_artists <- c("Monet", "Van Gogh", "Dali", "Manet", "Picasso")
 
 
 
