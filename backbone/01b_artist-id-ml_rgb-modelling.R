@@ -209,6 +209,8 @@ final_rf <- finalize_workflow(workflow_rf, params_rf_best)
 
 ### Fit final model (on all training data)
 final_fit_rf <- fit(final_rf, data=df_train_unprepped) 
+fn_model <- paste0("01_artist_id-ml_rgb", "_", Sys.Date(), ".rds")
+# saveRDS(final_fit_rf, here("models", fn_model))
 
 
 ## Assess predictions-------------------
@@ -285,7 +287,7 @@ preds_img_new <- predict(final_fit_rf, df_img_new_feat, type = "prob")
 
 
 ### Get top k predictions
-top_preds_img_new <- get_top_k_preds_for_artwork(final_fit_rf, df_img_new_feat, k=5)
+top_preds_img_new <- get_top_k_preds_for_artwork(df_img_new_feat, final_fit_rf, k=5)
 print(top_preds_img_new)
 #Van Gogh is 3
 
