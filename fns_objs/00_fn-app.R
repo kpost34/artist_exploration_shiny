@@ -7,18 +7,17 @@ build_q_a_block <- function(id, n) {
   ns <- NS(id)
   
   # Create names
-  nm_root <- c("out_img_art", "ui_answer_art", "txt_answer_msg_art")
+  nm_root <- c("out_img_art", "ui_btn_modal_art", "ui_answer_art", "txt_answer_msg_art")
   nm <- paste0(nm_root, n)
-  names(nm) <- c("image", "answer", "message")
+  names(nm) <- c("image", "button", "answer", "message")
   
   # Build UI block
   tagList(
     column(2,
-      imageOutput(ns(nm["image"]),
-                  height="250px", 
-                  width="250px"),
+      uiOutput(ns(nm["image"])),
+      uiOutput(ns(nm["button"])),
       uiOutput(ns(nm["answer"])),
-      strong(textOutput(ns(nm["message"])))
+      strong(htmlOutput(ns(nm["message"])))
     )
   )
 }
