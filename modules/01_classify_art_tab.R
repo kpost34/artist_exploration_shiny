@@ -101,12 +101,6 @@ classifyServer <- function(id, mod) {
       input$file_img$datapath %>%
         process_loaded_image() %>%
         extract_final_rgb_feat()
-      # tibble(
-      #   rank=1:5,
-      #   artist=c("Van Gogh, Vincent", "Monet, Claude", "Picasso, Pablo", "Manet, Édouard", "Dalí, Salvador"),
-      #   nationality=c("Dutch", "French", "Spanish", "French", "Spanish"),
-      #   pct_confidence=c(90, 5, 2, 2, 1)
-      # )
     })
     
     
