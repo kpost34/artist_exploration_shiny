@@ -5,4 +5,7 @@
 .DS_Store
 *.Rproj
 /data
+/img
+/models
+/history_database
 x_notes.R
