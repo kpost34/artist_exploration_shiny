@@ -172,7 +172,7 @@ df_art_info_public_full <- df_artist_info_public %>%
 
 
 # 03: Game==========================================================================================
-## Read in app data
+## Read in app data for game and model
 fp_game <- grab_newest_fp(dir=here("data"),
                           patt="^03_app-feat_")
 
@@ -186,11 +186,26 @@ df_game <- df_artist_info0 %>%
   )
 
 
-vec_artists <- c("Monet", "Van Gogh", "Dali", "Manet", "Picasso")
+## Read in full app data for modal table
+vec_modal <- c("object_id", "nationality", "title", "creation_dates", "medium", "dims_clean")
+vec_modal_easy <- vec_modal[vec_modal!="object_id"]
+vec_modal_normal <- vec_modal[!vec_modal %in% c("object_id", "nationality")]
+
+labs_modal <- c("object_id", "Artist's Nationality", "Title of Artwork", "Creation Date(s)",
+                "Medium", "Dimensions")
+labs_modal_easy <- labs_modal[labs_modal!="object_id"]
+labs_modal_normal <- labs_modal[!labs_modal %in% c("object_id", "Artist's Nationality")]
 
 
 
-
+df_modal <- df_artist_info_public %>%
+  filter(object_id %in% df_game0$object_id) %>%
+  mutate(creation_dates=ifelse(date_start==date_end,
+                               date_start,
+                               paste(date_start, date_end, sep="-")),
+         dims_clean=str_remove_all(dimensions, "\\s*\\([^\\)]*?cm\\)")) %>%
+  select(all_of(vec_modal)) %>%
+  set_variable_labels(., .labels=labs_modal)
 
 
 

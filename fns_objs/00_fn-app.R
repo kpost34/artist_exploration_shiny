@@ -74,3 +74,17 @@ format_name <- function(name){
   
   return(formatted_name)
 }
+
+
+
+# Function to extract and rotate metadata in modal
+extract_rotate_meta <- function(df, row, fields) {
+  df[row, fields] %>%
+    mutate(across(everything(), as.character)) %>%
+    pivot_longer(cols=everything(),
+                 names_to="attribute",
+                 values_to="value")
+}
+
+
+

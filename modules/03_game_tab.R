@@ -28,7 +28,7 @@ gameUI <- function(id) {
         sliderTextInput(ns("sldT_diff"), "Select your difficulty",
                         choices=c("easy", "normal", "hard"),
                         selected="normal")
-        #easy = 3 choices, normal = 5 choices, hard = text entry
+        #easy = 3 choices, normal = 4 choices, hard = 5 choices
       ),
       column(1),
       column(2, 
@@ -71,29 +71,40 @@ gameServer <- function(id, mod, current_tab) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
-    ## Hold shrinking DF of game artwork
-    rv_remaining <- reactiveVal(df_game) #seed with inital DF
+    ## Reactive DFs
+    ### Hold shrinking DF of game artwork
+    rv_remaining <- reactiveVal(df_game) #seed with initial DF
     
     
-    ## Extract sample & retain remaining records
+    ### Extract sample & retain remaining records
     df_sample <- eventReactive(input$btn_diff, {
-      req(current_tab()=="Game")
+      # req(current_tab()=="Game")
       
       df <- rv_remaining()
       req(nrow(df) >= 5)
 
       #get sample
       sample <- df %>%
+        left_join(df_modal, by="object_id") %>%
         slice_sample(n=5)
 
-      #reduce pool
+      #reduce pool of object_ids
       rv_remaining(df %>% filter(!object_id %in% sample$object_id))
 
       sample
     })
     
     
-    ## Create vector of wrong answers
+    ### Create reactive of correct answers with metadata
+    df_artist_meta <- reactive({
+      df <- df_modal %>%
+        filter(object_id %in% df_sample$object_id)
+      
+      df
+    })
+    
+    
+    ### Create vector of wrong answers
     vec_wrong_artists <- reactive({
       df_game %>%
         anti_join(df_sample(), by="artist_clean") %>%
@@ -102,13 +113,13 @@ gameServer <- function(id, mod, current_tab) {
     })
     
     
-    ## Pre-process images
+    ## Display blocks of UI
+    ### Pre-process images
     input_ids <- paste0("input_answer_art", 1:5)
     # vec_correct_answers <- c("Monet", "Dali", "Monet", "Manet")
     vec_answers_msg <- paste0("txt_answer_msg_art", 1:5)
     
     
-    ## Display blocks of UI
     ### Render images
     observeEvent(df_sample(), {
       
@@ -123,8 +134,8 @@ gameServer <- function(id, mod, current_tab) {
           output[[nm_image]] <- renderUI({
             tags$img(
               src = url,
-              width = "250px",
-              style = "margin: 10px; max-width: 100%; height: auto;",
+              style = "height: 200px; width: 100%; object-fit: contain; display: block; margin: 10px auto;",
+              # style = "margin: 10px; max-width: 100%; height: auto; max-height: 200px",
               alt = paste("Artwork", x)
             )
           })
@@ -133,7 +144,8 @@ gameServer <- function(id, mod, current_tab) {
     })
     
     
-    ### Display buttons to display modals
+    ### Modals
+    #### Display buttons to show modals
     observeEvent(input$btn_diff, {
       1:5 %>%
         purrr::map(function(x) {
@@ -147,6 +159,37 @@ gameServer <- function(id, mod, current_tab) {
                          label="See information")
           })
         })
+    })
+    
+    
+    #### Render tables for modals
+    observeEvent(df_sample(), {
+      purrr::map(1:5, function(x) {
+        nm_dt_meta <- paste0("dt_art_meta", x)
+        df_meta <- extract_rotate_meta(df=df_sample(),
+                                       row=x,
+                                       fields=vec_modal_easy)
+
+        output[[nm_dt_meta]] <- DT::renderDataTable({
+          DT::datatable(df_meta)
+        })
+      })
+    })
+    
+    
+    #### Display modals
+    purrr::map(1:5, function(x) {
+      observeEvent(input[[paste0("btn_modal_art", x)]], {
+        nm_modal_table <- paste0("dt_art_meta", x)
+        
+        showModal(modalDialog(
+          title=paste("Modal for button", x),
+          DT::dataTableOutput(ns(nm_modal_table)),
+          # p(paste("You clicked button number", x, ". This is the modal for it.")),
+          footer=modalButton("Close"),
+          easyClose=TRUE
+        ))
+      })
     })
     
     
@@ -189,41 +232,6 @@ gameServer <- function(id, mod, current_tab) {
     })
     
     
-    # observeEvent(input$btn_diff, {
-    #   purrr::map(1:5, function(x) {
-    #     #create outputs and inputs
-    #     nm_input_answer <- paste0("input_answer_art", x)
-    #     nm_output_answer <- paste0("ui_answer_art", x)
-    #   
-    #     #easy and normal cases
-    #     if(input$sldT_diff %in% c("easy", "normal")) {
-    #       
-    #       vec_artist_choices <- if(input$sldT_diff=="easy") {
-    #         vec_artists[1:3]
-    #       } else if(input$sldT_diff=="normal"){
-    #         vec_artists
-    #       }
-    #       #radio button input
-    #       output[[nm_output_answer]] <- renderUI({
-    #         radioButtons(ns(nm_input_answer), 
-    #                      "Choose artist",
-    #                      choices=vec_artist_choices,
-    #                      selected=character(0)
-    #         )
-    #       })
-    #       #hard case
-    #       } else if(input$sldT_diff=="hard"){
-    #       
-    #         #text input
-    #         output[[nm_output_answer]] <- renderUI({
-    #           textInput(ns(nm_input_answer),
-    #                     "Enter artist's name")
-    #         })
-    #       }
-    #   })
-    # })
-    
-    
     ### Conditionally display answer submit button
     #### Create reactive of answers being selected
     all_selected <- reactive({
@@ -250,7 +258,7 @@ gameServer <- function(id, mod, current_tab) {
     ## Evaluate whether answers are correct
     ### Display number correct below submit button
     #### Create reactive of each answer assessment
-    vec_answers_determination <- reactive({
+    vec_answers_assess <- reactive({
       req(input$btn_submit_art)
       all_selected()==df_sample()$artist_clean
     })
@@ -258,14 +266,11 @@ gameServer <- function(id, mod, current_tab) {
     
     #### Render output
     observeEvent(input$btn_submit_art, {
-      req(vec_answers_determination())
-      # vec_text_msg <- map_chr(vec_answers_determination(),
-      #                         ~ifelse(.x, "Correct!", "Wrong")
-      # )
+      req(vec_answers_assess())
       
       purrr::map(1:5, function(x) {
         output[[vec_answers_msg[x]]] <- renderUI({
-          if(vec_answers_determination()[x]) {
+          if(vec_answers_assess()[x]) {
             HTML("<span style='color: green;'>Correct!</span>")
           } else{
             HTML("<span style='color: red;'>Wrong</span>")
@@ -281,8 +286,8 @@ gameServer <- function(id, mod, current_tab) {
     ### Display correct/incorrect below each response/artwork
     #### Create reactive
     n_correct <- reactive({
-      req(vec_answers_determination())
-      sum(vec_answers_determination())
+      req(vec_answers_assess())
+      sum(vec_answers_assess())
     })
     
     
