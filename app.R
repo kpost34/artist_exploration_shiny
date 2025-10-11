@@ -1,10 +1,10 @@
 # Artist Exploration Shiny App
 ## App code
 
-# Load Packages & Source Scripts====================================================================
+# Load Packages, Source Scripts, & Models===========================================================
 ## Load packages
 pacman:: p_load(shiny, shinyjs, bslib, here, tidyverse, janitor, DT, tidymodels, httr, shinyWidgets,
-                slickR)
+                slickR, magick, e1071, labelled)
 
 
 ## Load functions and objects
@@ -17,6 +17,21 @@ here("fns_objs") %>%
 here("modules") %>%
   list.files(full.names=TRUE) %>%
   purrr::map(source)
+
+
+## Load models
+### Model 1
+fp_mod1 <- list.files(here("models"), pattern="01_", full.names=TRUE) %>%
+  sort(decreasing=TRUE) %>%
+  .[1]
+mod1 <- readRDS(fp_mod1)
+
+
+### Model 3
+fp_mod3 <- list.files(here("models"), pattern="03_", full.names=TRUE) %>%
+  sort(decreasing=TRUE) %>%
+  .[1]
+mod3 <- readRDS(fp_mod3)
 
 
 
@@ -46,19 +61,19 @@ artistExplorationApp <- function() {
     id="modNav",
   
     ### Classify Art Tab
-    tabPanel("Classify Art", 
+    tabPanel("Classifier", 
       div(class="page-wrapper",
         classifyUI("classify_mod"))
     ),
     
     ### Art Exploration Tab
-    tabPanel("Explore Arts",
+    tabPanel("Exploration",
       div(class="page-wrapper",
         exploreUI("explore_mod"))
     ),
     
     ### Game Tab
-    tabPanel("Compete Against the Model",
+    tabPanel("Game",
       div(class="page-wrapper",
         gameUI("game_mod"))
     ),
@@ -81,13 +96,14 @@ artistExplorationApp <- function() {
   server <- function(input, output, session) {
     
     ### Classify Art Tab
-    classifyServer("classify_mod")
+    classifyServer("classify_mod", mod=mod1)
     
     ### Art Exploration Tab
     exploreServer("explore_mod")
     
     ### Game Tab
-    gameServer("game_mod")
+    gameServer("game_mod", mod=mod3)
+    # gameServer("game_mod", mod=mod3, current_tab=reactive(input$modNav))
     
     ### App Info
     #placeholder
