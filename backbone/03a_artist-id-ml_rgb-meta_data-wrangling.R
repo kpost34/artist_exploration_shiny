@@ -16,7 +16,7 @@ df_art_feat0 <- readRDS(fp_art_feat)
 
 # Remove Row(s) with Missing Data===================================================================
 df_art_feat <- df_art_feat0 %>%
-  filter(object_id!=435846) 
+  filter(object_id!=435846)
 
 
 
@@ -310,6 +310,7 @@ df_train_final <- df_train_combined %>%
 
 # Feature Engineering: App Data=====================================================================
 ## Title features
+### Perform TF-IDF using train set
 df_app_tfidf <- df_app0 %>%
   select(object_id, title) %>%
   unnest_tokens(word, title) %>%
@@ -330,6 +331,18 @@ df_app_tfidf <- df_app0 %>%
   pivot_wider(id_cols = object_id, names_from = word, values_from = tf_idf) %>%
   full_join(df_app0 %>% select(object_id), by = "object_id") %>%
   mutate(across(!object_id, ~replace_na(.x, 0)))
+
+
+### Add in null columns (from training set), populate with 0s, and reorder
+#ensure all columns in train_vocab are present
+missing_cols <- setdiff(train_vocab, names(df_app_tfidf))
+
+#add missing columns filled with 0
+df_app_tfidf[missing_cols] <- 0
+
+#reorder columns to match training data
+df_app_tfidf <- df_app_tfidf %>%
+  select(object_id, all_of(train_vocab))
 
 
 ## Dimension features

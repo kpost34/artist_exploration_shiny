@@ -92,7 +92,7 @@ final_rf <- finalize_workflow(workflow_rf, params_rf_best)
 
 
 ### Fit final model (on all training data)
-# final_fit_rf <- fit(final_rf, data=df_train_unprepped)
+# final_fit_rf <- fit(final_rf, data=df_train_final)
 
 
 ## XGBoost--------------------
@@ -160,6 +160,32 @@ final_fit_rf <- fit(final_rf, data=df_train_final)
 ## Save model to file
 fn_model <- paste0("03_artist_id-ml_rgb-meta", "_", Sys.Date(), ".rds")
 # saveRDS(final_fit_rf, here("models", fn_model))
+
+
+
+# Predict on App Data===============================================================================
+## Load model (if nec)
+fp_final_fit_rf <- grab_newest_fp(here("models"), patt="03_")
+
+final_fit_rf <- readRDS(fp_final_fit_rf)
+
+
+## Run predictions
+### All data
+preds <- predict(final_fit_rf, df_app_final)
+
+
+### One artwork
+n <- sample(1:104, 1)
+predict(final_fit_rf, df_app_final[n,])
+df_app_final[n,2]
+
+
+
+
+
+
+
 
 
 
