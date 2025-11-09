@@ -9,27 +9,17 @@ build_q_a_block <- function(id, n) {
   # Create names
   nm_root <- c("out_img_art", "ui_btn_modal_art", "ui_answer_art", "txt_mod_answer_art", 
                "txt_correct_answer") 
-               # "txt_answer_msg_art",
-               # "txt_mod_answer_msg_art")
   nm <- paste0(nm_root, n)
   names(nm) <- c("image", "button", "user_answer", "mod_answer", "correct_answer")
-                 # "user_message", "mod_answer", "mod_message")
   
   # Build UI block
   tagList(
     column(2,
       uiOutput(ns(nm["image"])),
       uiOutput(ns(nm["button"])),
-      # tags$div(style = "margin-top: 10px;"),
       uiOutput(ns(nm["user_answer"])),
-      # tags$div(style = "margin-top: 10px;"),
-      # "Model Selected:",
-      # strong(htmlOutput(ns(nm["user_message"]))),
       uiOutput(ns(nm["mod_answer"])),
-      # tags$div(style = "margin-top: 10px;"),
-      # "Correct answer:",
       uiOutput(ns(nm["correct_answer"]))
-      # strong(htmlOutput(ns(nm["mod_message"])))
     )
   )
 }
