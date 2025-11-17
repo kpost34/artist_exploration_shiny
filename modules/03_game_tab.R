@@ -78,7 +78,17 @@ gameServer <- function(id, mod) {
     ns <- session$ns
     
     
-    ## Seeding reactive values-------------------
+    ## Create static values-------------------
+    vec_answers_msg <- paste0("txt_answer_msg_art", 1:5)
+    vec_mod_answers <- paste0("txt_mod_answer_art", 1:5)
+    vec_mod_answers_msg <- paste0("txt_mod_answer_msg_art", 1:5)
+    vec_correct_answers <- paste0("txt_correct_answer", 1:5)
+    
+    intro_model <- c("Model selections:", rep("<br>", 4))
+    intro_answer <- c("Correct answers:", rep("<br>", 4))
+    
+    
+    ## Seed reactive values-------------------
     #seed with initial DF
     rv_remaining <- reactiveVal(df_game)
     
@@ -89,24 +99,40 @@ gameServer <- function(id, mod) {
       submitted=FALSE
     )
     
-    #seed with 0s
-    rv_user_score <- reactiveVal(0)
-    rv_mod_score <- reactiveVal(0)
-    
     
     ## Reset Game Button-------------------
     observeEvent(input$btn_reset_game, {
       #resets dataframe
-      rv_remaining(df_game) 
-
-      rv_scores(
-        tibble(
-          player=c("user", "model"),
-          round=rep(0, 2),
-          total=rep(0, 2)
-        )
-      )
-    })
+      rv_remaining(df_game)  
+      
+      #reset scores & submitted
+      rv$user_score <- 0
+      rv$mod_score <- 0
+      rv$submitted <- FALSE
+      
+      purrr::map(1:5, function(x) {
+      
+        #reset image
+        nm_image <- paste0("out_img_art", x)
+        output[[nm_image]] <- renderUI({NULL})
+      
+        #reset modal buttons
+        nm_output_btn <- paste0("ui_btn_modal_art", x)
+        output[[nm_output_btn]] <- renderUI({NULL})
+    
+        #reset choices
+        nm_output_answer <- paste0("ui_answer_art", x)
+        output[[nm_output_answer]] <- renderUI({NULL})
+        
+        #reset round scores
+        output[[vec_mod_answers[x]]] <- renderUI({ NULL })
+        output[[vec_correct_answers[x]]] <- renderUI({ NULL })
+      })
+      
+      #update btn_round name
+      updateActionButton(session, "btn_round", "Start game")
+    }, ignoreInit=TRUE
+    )
 
     
     ## New Round Button-------------------
@@ -167,9 +193,21 @@ gameServer <- function(id, mod) {
       #no modals on hard mode
       req(input$sldT_diff %in% c("easy", "normal"))
       
+      #hide confirm button
+      shinyjs::hide("btn_submit_art")
+      
+      #reset submission state at start of round
+      rv$submitted <- FALSE
+      
+      #clear displayed answers & scores
+      purrr::walk(1:5, function(x) {
+        output[[vec_mod_answers[x]]] <- renderUI({ NULL })
+        output[[vec_correct_answers[x]]] <- renderUI({ NULL })
+      })
+      
       1:5 %>%
         purrr::map(function(x) {
-          #create outputs and inputs
+          #create names of outputs and inputs
           nm_input_btn <- paste0("btn_modal_art", x)
           nm_output_btn <- paste0("ui_btn_modal_art", x)
           
@@ -224,7 +262,7 @@ gameServer <- function(id, mod) {
         
         showModal(modalDialog(
           title=paste("Artwork", x),
-          DT:DTOutput(ns(nm_modal_table)),
+          DT::DTOutput(ns(nm_modal_table)),
           footer=modalButton("Close"),
           easyClose=TRUE
         ))
@@ -235,8 +273,12 @@ gameServer <- function(id, mod) {
     ## Answer choices and assessment-------------------
     ### Conditionally display answer (choices) UI
     observeEvent(input$btn_round, {
-      #reset submission status
-      rv$submitted <- FALSE
+      #display reset button
+      output$ui_btn_reset_game <- renderUI({
+        actionButton(ns("btn_reset_game"), "Reset game")
+      })
+      
+      #hide submit button
       shinyjs::hide("btn_submit_art")
       
       purrr::map(1:5, function(x) {
@@ -247,7 +289,6 @@ gameServer <- function(id, mod) {
         #grab right answer
         answer_right <- df_sample()$artist_clean[x]
           
-        
         #create choices per question
         if(input$sldT_diff=="easy"){
           n <- 2
@@ -285,7 +326,7 @@ gameServer <- function(id, mod) {
     })
     
     
-    #### Model: Create reactive vector of choice selected
+    #### Model: Create reactive vector of choices selected
     model_selected <- reactive({
       predict(mod, df_sample()) %>%
         .[[1]] %>%
@@ -307,65 +348,52 @@ gameServer <- function(id, mod) {
     
     
     ### Submit button clicked
+    #### Update scores, hide submit button, and update btn_round label
     observeEvent(input$btn_submit_art,{
-      #round changes to submitted
       rv$submitted <- TRUE 
-      
+
       #update scores
       rv$user_score <- rv$user_score + n_correct()
       rv$mod_score <- rv$mod_score + n_mod_correct()
       
       #hide button
       shinyjs::hide("btn_submit_art")
-      # output$ui_btn_submit_art <- renderUI(NULL)
       
+      #update button name
       updateActionButton(session, "btn_round", "Next Round")
     }, ignoreInit=TRUE)
     
     
-    ### Evaluate whether individual answers are correct
-    #### User: Create reactive of each answer assessment
+    #### Evaluate whether individual answers are correct
+    #user: Create reactive of each answer assessment
     vec_user_answers_assess <- reactive({
-      req(input$btn_submit_art)
+      if (!rv$submitted) return(rep(FALSE, 5))
       user_selected()==df_sample()$artist_clean
     })
-    
-    
-    #### Model: Create reactive of each answer assessment
+  
+    #model: Create reactive of each answer assessment
     vec_model_answers_assess <- reactive({
-      req(input$btn_submit_art)
+      if (!rv$submitted) return(rep(FALSE, 5))
       model_selected()==df_sample()$artist_clean
     })
     
     
-    #### Render output
+    #### Render individual selections & answers
     observeEvent(input$btn_submit_art, {
-      # req(rv$submitted)
-      # req(vec_user_answers_assess(),
-      #     vec_model_answers_assess())
-      
-      vec_answers_msg <- paste0("txt_answer_msg_art", 1:5)
-      vec_mod_answers <- paste0("txt_mod_answer_art", 1:5)
-      vec_mod_answers_msg <- paste0("txt_mod_answer_msg_art", 1:5)
-      vec_correct_answers <- paste0("txt_correct_answer", 1:5)
-      
-      intro_model <- c("Model selections:", rep("<br>", 4))
-      
-      intro_answer <- c("Correct answers:", rep("<br>", 4))
-      
-      
+      req(rv$submitted)
+
       purrr::map(1:5, function(x) {
         #mod answers
         output[[vec_mod_answers[x]]] <- renderUI({
-          
+  
           HTML(intro_model[x],
                paste0("<p>", model_selected()[x], "</p>"))
         })
-        
+  
         #correct answers
         output[[vec_correct_answers[x]]] <- renderUI({
           answer <- df_sample()$artist_clean[x]
-          
+  
           HTML(intro_answer[x],
                paste0("<p><strong>", answer, "</strong></p>"))
         })
@@ -373,50 +401,37 @@ gameServer <- function(id, mod) {
     })
     
     
+    ## Count and sum correct answers-------------------
     ### Count numbers of correct selections 
-    #### Create recent round reactives
+    #user
     n_correct <- reactive({
+      input$btn_submit_art
       sum(vec_user_answers_assess())
     })
     
-    
+    #model
     n_mod_correct <- reactive({
+      input$btn_submit_art
       sum(vec_model_answers_assess())
     })
     
-    
-    #### Update total score reactiveVals
-    # observeEvent(input$btn_submit_art, {
-    #   #user
-    #   current_val <- rv_user_score()
-    #   rv_user_score(current_val + n_correct())
-    #   
-    #   #model
-    #   current_mod_val <- rv_mod_score()
-    #   rv_mod_score(n_mod_correct() + current_mod_val)
-    # })
-    
-    
-    #### Render outputs
-    ##### Text
+  
+    ### Render outputs
+    #### Text
     output$txt_n_correct <- renderText({
-      #wait until submitted and n_correct() changes
-      req(rv$submitted, n_correct())
-      
+      req(rv$submitted)
       obj <- if(n_correct()==1) "painting" else "paintings"
       paste("You identified", n_correct(), obj, "correctly")
     })
   
     output$txt_n_mod_correct <- renderText({
-      #wait until submitted and n_mod_correct() changes
-      req(rv$submitted, n_mod_correct())
-      
+      req(rv$submitted)
       obj <- if(n_mod_correct()==1) "painting" else "paintings"
       paste("The model identified", n_mod_correct(), obj, "correctly")
     })
     
     
-    ##### Tabular
+    #### Tabular
     output$tab_game_score <- renderDT({
       #submitted state is TRUE
       req(rv$submitted)
