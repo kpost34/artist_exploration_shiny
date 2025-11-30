@@ -25,6 +25,7 @@ gameUI <- function(id) {
       column(1),
       column(3, 
         ## Difficulty slider & submit button
+        uiOutput(ns("ui_txt_diff")),
         sliderTextInput(ns("sldT_diff"), "Select your difficulty",
                         choices=c("easy", "normal", "hard"),
                         selected="normal")
@@ -102,6 +103,10 @@ gameServer <- function(id, mod) {
     
     ## Reset Game Button-------------------
     observeEvent(input$btn_reset_game, {
+      #difficulty text disappears & slider returns 
+      shinyjs::hide("ui_txt_diff")
+      shinyjs::show("sldT_diff")
+      
       #resets dataframe
       rv_remaining(df_game)  
       
@@ -130,7 +135,7 @@ gameServer <- function(id, mod) {
       })
       
       #update btn_round name
-      updateActionButton(session, "btn_round", "Start game")
+      updateActionButton(session, "btn_round", "Start Game")
     }, ignoreInit=TRUE
     )
 
@@ -273,6 +278,19 @@ gameServer <- function(id, mod) {
     ## Answer choices and assessment-------------------
     ### Conditionally display answer (choices) UI
     observeEvent(input$btn_round, {
+      #hide start game/next round button temporarily
+      shinyjs::hide("btn_round")
+      
+      #show difficulty selected & hide difficulty slider
+      output$ui_txt_diff <- renderUI({
+        HTML(
+          paste0("Difficulty: ", 
+                 "<strong>", str_to_sentence(input$sldT_diff), "</strong>")
+        )
+      })
+      shinyjs::show("ui_txt_diff")
+      shinyjs::hide("sldT_diff")
+      
       #display reset button
       output$ui_btn_reset_game <- renderUI({
         actionButton(ns("btn_reset_game"), "Reset game")
@@ -348,13 +366,16 @@ gameServer <- function(id, mod) {
     
     
     ### Submit button clicked
-    #### Update scores, hide submit button, and update btn_round label
+    #### Update scores, show next round button, hide submit button, and update btn_round label
     observeEvent(input$btn_submit_art,{
       rv$submitted <- TRUE 
 
       #update scores
       rv$user_score <- rv$user_score + n_correct()
       rv$mod_score <- rv$mod_score + n_mod_correct()
+      
+      #show button
+      shinyjs::show("btn_round")
       
       #hide button
       shinyjs::hide("btn_submit_art")
@@ -445,6 +466,41 @@ gameServer <- function(id, mod) {
           rownames=FALSE,
           options=list(dom="t", ordering=FALSE)
         )
+    })
+    
+    
+    ## Game ending-------------------
+    observeEvent(input$btn_submit_art, {
+      req(rv$user_score >= 11|rv$mod_score >= 11)
+      
+      #create result msg object
+      msg_result <- if(rv$user_score==rv$mod_score) {
+        "You tied the model!"
+      } else if(rv$user_score > rv$mod_score){
+        "You beat the model!"
+      } else if(rv$mod_score > rv$user_score){
+        "The model beat you!"
+      }
+      
+      #create score msg objects
+      msg_user_score <- paste("You:", rv$user_score)
+      msg_mod_score <- paste("Model: ", rv$mod_score)
+      
+      #show modal and contents
+      showModal(
+        modalDialog(
+          title=h4("Game Over"),
+          p(strong(msg_result)),
+          p("Final Score: "),
+          p(msg_user_score),
+          p(msg_mod_score),
+          footer=modalButton("Close"),
+          easyClose=TRUE
+          )
+      )
+      
+      #hide next round button
+      shinyjs::hide("btn_round")
     })
     
   })
