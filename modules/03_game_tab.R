@@ -8,7 +8,7 @@ gameUI <- function(id) {
     h2("Can you Beat the Computer?"),
     
     fluidRow(
-      column(5, 
+      column(4, 
         br(),
              
         ## Instructions
@@ -22,13 +22,19 @@ gameUI <- function(id) {
           open=FALSE,
           id="art_game_acc")
       ),
-      column(1),
-      column(3, 
-        ## Difficulty slider & submit button
+      column(2, 
+        ## Difficulty slider
         uiOutput(ns("ui_txt_diff")),
-        sliderTextInput(ns("sldT_diff"), "Select your difficulty",
+        sliderTextInput(ns("sldT_diff"), "Difficulty",
                         choices=c("easy", "normal", "hard"),
                         selected="normal")
+      ),
+      column(1),
+      column(2,
+        ## Game length slider
+        uiOutput(ns("ui_txt_pts")),
+        sliderInput(ns("sld_pts"), "Points to Win", 
+                    min=5, max=11, value=9)
       ),
       column(1),
       column(1, 
@@ -106,6 +112,10 @@ gameServer <- function(id, mod) {
       #difficulty text disappears & slider returns 
       shinyjs::hide("ui_txt_diff")
       shinyjs::show("sldT_diff")
+      
+      #points to win disappears & slider returns
+      shinyjs::hide("ui_txt_pts")
+      shinyjs::show("sld_pts")
       
       #resets dataframe
       rv_remaining(df_game)  
@@ -281,7 +291,7 @@ gameServer <- function(id, mod) {
       #hide start game/next round button temporarily
       shinyjs::hide("btn_round")
       
-      #show difficulty selected & hide difficulty slider
+      #show difficulty selected & hide slider
       output$ui_txt_diff <- renderUI({
         HTML(
           paste0("Difficulty: ", 
@@ -290,6 +300,16 @@ gameServer <- function(id, mod) {
       })
       shinyjs::show("ui_txt_diff")
       shinyjs::hide("sldT_diff")
+      
+      #show points to win selected & hide slider
+      output$ui_txt_pts <- renderUI({
+        HTML(
+          paste0("Points to win: ", 
+                 "<strong>", input$sld_pts, "</strong>")
+        )
+      })
+      shinyjs::show("ui_txt_pts")
+      shinyjs::hide("sld_pts")
       
       #display reset button
       output$ui_btn_reset_game <- renderUI({
@@ -471,7 +491,7 @@ gameServer <- function(id, mod) {
     
     ## Game ending-------------------
     observeEvent(input$btn_submit_art, {
-      req(rv$user_score >= 11|rv$mod_score >= 11)
+      req(rv$user_score >= input$sld_pts|rv$mod_score >= input$sld_pts)
       
       #create result msg object
       msg_result <- if(rv$user_score==rv$mod_score) {
