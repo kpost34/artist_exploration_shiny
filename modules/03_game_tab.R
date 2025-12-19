@@ -34,7 +34,7 @@ gameUI <- function(id) {
         ## Game length slider
         uiOutput(ns("ui_txt_pts")),
         sliderInput(ns("sld_pts"), "Points to Win", 
-                    min=5, max=11, value=9)
+                    min=3, max=9, value=6)
       ),
       column(1),
       column(1, 
@@ -514,13 +514,41 @@ gameServer <- function(id, mod) {
           p("Final Score: "),
           p(msg_user_score),
           p(msg_mod_score),
-          footer=modalButton("Close"),
-          easyClose=TRUE
+          footer=actionButton(ns("btn_close_score_modal"), "Close"),
+          easyClose=FALSE
           )
       )
       
       #hide next round button
       shinyjs::hide("btn_round")
+    })
+    
+    
+    ## Post-game ending-------------------
+    observeEvent(input$btn_close_score_modal, {
+      removeModal()
+      
+      #difficulty text disappears & slider returns 
+      shinyjs::hide("ui_txt_diff")
+      shinyjs::show("sldT_diff")
+      
+      #points to win disappears & slider returns
+      shinyjs::hide("ui_txt_pts")
+      shinyjs::show("sld_pts")
+      
+      #update button name
+      updateActionButton(session, "btn_round", "New Game")
+      
+      #hide reset button & show new game button
+      shinyjs::hide("btn_reset_game")
+      shinyjs::show("btn_round")
+      
+      
+      #reset scores 
+      rv$user_score <- 0
+      rv$mod_score <- 0
+      rv$submitted <- FALSE
+      
     })
     
   })
