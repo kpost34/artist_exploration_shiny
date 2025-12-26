@@ -90,3 +90,18 @@ extract_rotate_meta <- function(df, row, fields) {
 
 
 
+# Function to check if img url is valid
+image_ok <- function(url) {
+  tryCatch({
+    r <- HEAD(url, timeout(3))
+    status_code(r) == 200 &&
+      grepl("^image/", headers(r)[["content-type"]])
+  }, error = function(e) FALSE)
+}
+
+
+
+
+
+
+

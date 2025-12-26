@@ -44,7 +44,7 @@ df_artist_info <- tribble(
   # "Rococo", "Italian", "Tiepolo, Giovanni Battista",
 
 ) %>%
-  mutate(artist_simple=convert_artist_name(artist)) 
+  mutate(artist_simple=convert_artist_name(artist))
 
 
 ## Bios
@@ -142,9 +142,6 @@ df_artist_bios <- tibble(
 ### Join artist info and bios with art info for complete df
 #### Read in art info (for public domain art)
 fp_art_explore <- grab_newest_fp(dir=here("data"), patt="^00_art-exploration")
-                    
-# fp_art_explore <- list.files(here("data"), "^00_art-exploration", full.names=TRUE) %>% 
-#   sort(decreasing=TRUE)
 
 df_artist_info0 <- readRDS(fp_art_explore) 
 df_artist_info_public <- df_artist_info0 %>%
@@ -180,11 +177,10 @@ df_game0 <- readRDS(fp_game)
 
 df_game <- df_artist_info0 %>%
   select(object_id, image_url) %>%
-  inner_join(df_game0)
-  # inner_join(
-  #   df_game0 %>%
-  #     select(object_id, artist_clean)
-  # )
+  inner_join(df_game0) %>%
+  mutate(image_available = map_lgl(image_url, image_ok)) %>%
+  filter(image_available) %>%
+  select(!image_available)
 
 
 ## Read in full, raw app data for modal table
