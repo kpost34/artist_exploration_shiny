@@ -205,20 +205,9 @@ gameServer <- function(id, mod) {
     ## Modals-------------------
     ### Display buttons to show modals
     observeEvent(input$btn_round, {
-      #no modals on hard mode
-      req(input$sldT_diff %in% c("easy", "normal"))
       
       #hide confirm button
       shinyjs::hide("btn_submit_art")
-      
-      #reset submission state at start of round
-      rv$submitted <- FALSE
-      
-      #clear displayed answers & scores
-      purrr::walk(1:5, function(x) {
-        output[[vec_mod_answers[x]]] <- renderUI({ NULL })
-        output[[vec_correct_answers[x]]] <- renderUI({ NULL })
-      })
       
       1:5 %>%
         purrr::map(function(x) {
@@ -228,6 +217,8 @@ gameServer <- function(id, mod) {
           
           #build ui
           output[[nm_output_btn]] <- renderUI({
+            #no modals on hard mode
+            req(input$sldT_diff %in% c("easy", "normal"))
             actionButton(ns(nm_input_btn),
                          label="See information")
           })
@@ -290,6 +281,15 @@ gameServer <- function(id, mod) {
     observeEvent(input$btn_round, {
       #hide start game/next round button temporarily
       shinyjs::hide("btn_round")
+      
+      #reset submission state at start of round
+      rv$submitted <- FALSE
+      
+      #clear displayed answers & scores
+      purrr::walk(1:5, function(x) {
+        output[[vec_mod_answers[x]]] <- renderUI({ NULL })
+        output[[vec_correct_answers[x]]] <- renderUI({ NULL })
+      })
       
       #show difficulty selected & hide slider
       output$ui_txt_diff <- renderUI({
