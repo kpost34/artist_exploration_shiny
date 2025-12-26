@@ -4,7 +4,7 @@
 # Load Packages, Source Scripts, & Models===========================================================
 ## Load packages
 pacman:: p_load(shiny, shinyjs, bslib, here, tidyverse, janitor, DT, tidymodels, httr, shinyWidgets,
-                slickR, magick, e1071, labelled)
+                slickR, magick, e1071)
 
 
 ## Load functions and objects
@@ -21,16 +21,12 @@ here("modules") %>%
 
 ## Load models
 ### Model 1
-fp_mod1 <- list.files(here("models"), pattern="01_", full.names=TRUE) %>%
-  sort(decreasing=TRUE) %>%
-  .[1]
+fp_mod1 <- grab_newest_fp(here("models"), patt="01_")
 mod1 <- readRDS(fp_mod1)
 
 
 ### Model 3
-fp_mod3 <- list.files(here("models"), pattern="03_", full.names=TRUE) %>%
-  sort(decreasing=TRUE) %>%
-  .[1]
+fp_mod3 <- grab_newest_fp(here("models"), patt="03_")
 mod3 <- readRDS(fp_mod3)
 
 
