@@ -247,8 +247,8 @@ df_art_info_public_full <- df_artist_info_public %>%
   #filter for available images
   mutate(image_available = map_lgl(image_url, image_ok)) %>%
   filter(image_available) %>%
-  select(!image_available)
-
+  select(!image_available) 
+  
 
 
 # 03: Game==========================================================================================
