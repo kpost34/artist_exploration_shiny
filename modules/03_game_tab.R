@@ -39,7 +39,7 @@ gameUI <- function(id) {
       column(1),
       column(1, 
         br(),
-        actionButton(ns("btn_round"), "Start Game")
+        actionButton(ns("btn_round"), "Start Game", class="btn-success")
       ),
       column(1,
         br(),
@@ -67,7 +67,7 @@ gameUI <- function(id) {
       ),
       column(2,
         hidden(
-          actionButton(ns("btn_submit_art"), "Confirm selections")
+          actionButton(ns("btn_submit_art"), "Confirm selections", class="btn-success")
         )
       ),
       column(6,
@@ -223,7 +223,8 @@ gameServer <- function(id, mod) {
             #no modals on hard mode
             req(input$sldT_diff %in% c("easy", "normal"))
             actionButton(ns(nm_input_btn),
-                         label="See information")
+                         label="See information",
+                         class="btn-info")
           })
         })
     })
@@ -316,7 +317,7 @@ gameServer <- function(id, mod) {
       
       #display reset button
       output$ui_btn_reset_game <- renderUI({
-        actionButton(ns("btn_reset_game"), "Reset game")
+        actionButton(ns("btn_reset_game"), "Reset game", class="btn-danger")
       })
       
       #hide submit button
@@ -517,7 +518,7 @@ gameServer <- function(id, mod) {
           p("Final Score: "),
           p(msg_user_score),
           p(msg_mod_score),
-          footer=actionButton(ns("btn_close_score_modal"), "Close"),
+          footer=actionButton(ns("btn_close_score_modal"), "Close", class="btn-primary"),
           easyClose=FALSE
           )
       )
