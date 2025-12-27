@@ -40,9 +40,16 @@ df_artist_info <- tribble(
   "Symbolism", "French", "Gauguin, Paul",
   "Impressionism", "French", "Cézanne, Paul",
   "Post-impressionism", "French", "Cézanne, Paul",
-  "Spanish Rennaissance", "Greek", "Theotokopoulos, Domenikos"
-  # "Rococo", "Italian", "Tiepolo, Giovanni Battista",
-
+  "Spanish Rennaissance", "Greek", "Theotokopoulos, Domenikos",
+  "Northern Renaissance", "Netherlandish", "David, Gerard",
+  "Northern Renaissance", "Netherlandish", "Memling, Hans", 
+  "Baroque", "Dutch", "Vermeer, Johannes", 
+  "Northern Renaissance", "Netherlandish",  "Christus, Petrus", 
+  "Rococo", "Italian", "Falca, Pietro",
+  "Romanticism", "French", "Delacroix, Eugène", 
+  "Post-impressionism", "French", "Seurat, Georges", 
+  "Baroque", "Flemish", "Rubens, Peter Paul", 
+  "Barbizon School", "French", "Rousseau, Théodore"
 ) %>%
   mutate(artist_simple=convert_artist_name(artist))
 
@@ -118,22 +125,94 @@ in his time, El Greco's visionary art profoundly influenced modern artists, incl
 the Expressionists."
 
 
-# bio_tiepolo <- "Giovanni Battista Tiepolo (1696–1770) was a Venetian painter and printmaker 
-# celebrated for his grand, luminous frescoes and masterful use of color and composition. A 
-# leading figure of the Rococo era, Tiepolo became renowned for his theatrical, uplifting scenes 
-# filled with graceful figures, dynamic movement, and dramatic light. His major works include 
-# ceiling frescoes in the Würzburg Residence in Germany and the Palazzo Labia in Venice. Tiepolo's 
-# art blended classical themes with imaginative flair, embodying the elegance and exuberance of 
-# 18th-century European art. His influence extended across Europe, and his legacy endures as one 
-# of Italy’s greatest decorative painters."
+bio_david <- "Gerard David (c.1460–1523) was an Early Netherlandish painter active in Bruges, 
+known for his serene compositions and luminous color. Working during the Northern Renaissance, 
+David combined meticulous detail with a calm, harmonious sense of space, often focusing on religious 
+and devotional subjects. Notable works such as *The Virgin Among the Virgins* and *The Judgement of 
+Cambyses* demonstrate his refined technique and emotional restraint. Influenced by Jan van Eyck and 
+Hans Memling, David helped advance a more unified and naturalistic style in Netherlandish painting."
+
+
+bio_memling <- "Hans Memling (c.1430–1494) was a German-born Early Netherlandish painter who worked 
+primarily in Bruges. Renowned for his delicate realism, balanced compositions, and luminous color, 
+Memling specialized in religious altarpieces and intimate portraits. Works such as *The Last 
+Judgment* and *The St. Ursula Shrine* blend the precision of Jan van Eyck with a softer, more 
+graceful sensibility. Highly successful in his lifetime, Memling exemplified the devotional clarity 
+and refined naturalism of late 15th-century Northern Renaissance art."
+
+
+bio_vermeer <- "Johannes Vermeer (1632–1675) was a Dutch Baroque painter celebrated for his 
+masterful use of light, color, and quiet domestic scenes. Working in Delft during the Dutch Golden 
+Age, Vermeer specialized in intimate interiors depicting everyday life, often featuring a single 
+figure absorbed in a moment of stillness. Paintings such as *Girl with a Pearl Earring* and *The 
+Milkmaid* reveal his subtle handling of perspective and luminous surfaces. Though little known 
+during his lifetime, Vermeer is now regarded as one of the greatest painters of the 17th century 
+for his poetic realism and technical refinement."
+
+
+bio_christus <- "Petrus Christus (c.1410–1475/76) was an Early Netherlandish painter active in 
+Bruges, known for bringing greater spatial coherence and realism to Northern Renaissance art. 
+Influenced by Jan van Eyck, Christus employed precise detail, controlled perspective, and clear 
+light to create calm, structured compositions. His works, including *A Goldsmith in His Shop* and 
+*Portrait of a Carthusian*, demonstrate an innovative use of linear perspective and psychological 
+presence. As a key transitional figure, Petrus Christus helped move Netherlandish painting toward 
+a more rational and unified representation of space."
+
+
+bio_falca <- "Pietro Falca (1696–1770), better known as Giovanni Battista Tiepolo, was a Venetian 
+Rococo painter and fresco artist renowned for his luminous color, dramatic compositions, and airy 
+illusionism. Active across Italy, Germany, and Spain, Tiepolo specialized in grand decorative 
+schemes for palaces and churches. Major works such as *The Banquet of Cleopatra* and the frescoes 
+of the Würzburg Residenz showcase his dynamic figures and theatrical use of light. Celebrated in 
+his lifetime, Tiepolo is regarded as the greatest fresco painter of the 18th century."
+
+
+bio_delacroix <- "Eugène Delacroix (1798–1863) was a leading French Romantic painter known for his 
+expressive brushwork, rich color, and dramatic subject matter. Rejecting strict neoclassical 
+restraint, Delacroix emphasized emotion, movement, and atmosphere in his historical, literary, and 
+exotic scenes. Works such as *Liberty Leading the People* and *The Death of Sardanapalus* exemplify 
+his dynamic compositions and bold palette. Deeply influential on later artists, including the 
+Impressionists, Delacroix helped redefine painting as a vehicle for emotional and imaginative 
+expression in 19th-century art."
+
+
+bio_seurat <- "Georges Seurat (1859–1891) was a French Post-Impressionist painter and theorist, 
+best known for developing the technique of pointillism, in which small dots of color create 
+luminous, cohesive images. Working during the late 19th century, Seurat focused on landscapes, 
+urban scenes, and leisure activities, combining scientific color theory with precise composition. 
+Notable works such as *A Sunday Afternoon on the Island of La Grande Jatte* and *Bathers at 
+Asnières* showcase his innovative approach. Seurat’s methodical, analytical style laid the 
+foundation for modern Neo-Impressionism and influenced subsequent generations of artists exploring 
+color and perception."
+
+
+bio_paulrubens <- "Peter Paul Rubens (1577–1640) was a Flemish Baroque painter renowned for his 
+dynamic compositions, vibrant color, and dramatic energy. Active primarily in Antwerp, Rubens 
+created religious altarpieces, mythological scenes, and grand portraits characterized by movement, 
+sensuality, and grandeur. Works such as *The Descent from the Cross* and *The Garden of Love* 
+exemplify his masterful use of color, light, and form. Highly influential across Europe, Rubens 
+combined Italian Renaissance techniques with Northern European detail, establishing himself as one 
+of the most important painters of the 17th century."
+
+
+bio_rousseau <- "Théodore Rousseau (1812–1867) was a French painter and leading figure of the 
+Barbizon School, known for his naturalistic landscapes and atmospheric depictions of the French 
+countryside. Rejecting academic convention, Rousseau focused on the truthful observation of light, 
+texture, and season, capturing forests, rivers, and rural life with poetic realism. Notable works 
+such as *The Forest of Fontainebleau* and *Sunset in the Forest* demonstrate his deep sensitivity to 
+nature. Rousseau’s dedication to painting directly from the landscape helped lay the groundwork for 
+later Impressionists and the evolution of modern landscape painting."
 
 
 ### Compile into DF
 df_artist_bios <- tibble(
   artist=c("Manet, Edouard", "van Gogh, Vincent", "Degas, Edgar", "van Rijn, Rembrandt", 
-           "Gauguin, Paul", "Cézanne, Paul", "Theotokopoulos, Domenikos"),
+           "Gauguin, Paul", "Cézanne, Paul", "Theotokopoulos, Domenikos", "David, Gerard",
+           "Memling, Hans", "Vermeer, Johannes", "Christus, Petrus", "Falca, Pietro",
+           "Delacroix, Eugène", "Seurat, Georges", "Rubens, Peter Paul", "Rousseau, Théodore"),
   bio=c(bio_manet, bio_vangogh, bio_degas, bio_rembrandt, bio_gauguin, bio_cezanne,
-        bio_theo)
+        bio_theo, bio_david, bio_memling, bio_vermeer, bio_christus, bio_falca, bio_delacroix,
+        bio_seurat, bio_paulrubens, bio_rousseau)
 ) %>%
   mutate(artist_simple=convert_artist_name(artist))
 
@@ -164,7 +243,11 @@ df_art_info_public_full <- df_artist_info_public %>%
   left_join(df_artist_bios) %>%
   left_join(df_artist_info) %>%
   arrange(movement, nationality, artist) %>%
-  select(all_of(cols_art_info))
+  select(all_of(cols_art_info)) %>%
+  #filter for available images
+  mutate(image_available = map_lgl(image_url, image_ok)) %>%
+  filter(image_available) %>%
+  select(!image_available)
 
 
 
