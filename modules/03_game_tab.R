@@ -39,11 +39,11 @@ gameUI <- function(id) {
       column(1),
       column(1, 
         br(),
-        uiOutput(ns("ui_btn_reset_game"))
+        actionButton(ns("btn_round"), "Start Game")
       ),
       column(1,
         br(),
-        actionButton(ns("btn_round"), "Start Game")
+        uiOutput(ns("ui_btn_reset_game"))
       )
     ),
             
@@ -116,6 +116,9 @@ gameServer <- function(id, mod) {
       #points to win disappears & slider returns
       shinyjs::hide("ui_txt_pts")
       shinyjs::show("sld_pts")
+      
+      #show new game button
+      shinyjs::show("btn_round")
       
       #resets dataframe
       rv_remaining(df_game)  
