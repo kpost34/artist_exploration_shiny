@@ -3,27 +3,33 @@
 # Instructions======================================================================================
 ## Classify art
 txt_classify1 <- "Click 'Browse', choose a file from your machine, click Open, and the algorithm
-        will identify the top X artists. Adjust X via the slider and enable percent confidence
-        using the radio button. The results are displayed in the table."
+                  will identify the top X artists. Adjust X via the slider and enable percent 
+                  confidence using the radio button. The results are displayed in the table."
 
-txt_classify2 <- "Remember that this algorithm is trained on North American
-              and European painters only."
+txt_classify2 <- "Remember that this algorithm is trained on a select group of European painters 
+                  only."
 
 
 ## Artist exploration
-txt_explore <- "Choose an artist either directly or by filtering with the movement and nationality
-                selectors. Once selected, a bio and selection of their artwork
+txt_explore <- "Choose an artist directly or with the help of the movement and nationality
+                filters. Once selected, a bio and selection of their artwork
                 will be displayed."
 
 
 ## Game
-txt_game1 <- "Select your difficulty. Click begin and the first image will display. Choose the artist
-             that created the painting either by selecting the appropriate response or typing it in.
-             Click enter, and the app will evaluate your answer. Repeat for the remaining four
-             images. Once completed, the machine will reveal its answers for you to compare."
+txt_game1 <- "Use the sliders to select game difficulty and points to win and hit the 'Start Game'
+              button to display the first batch of five artworks." 
 
-txt_game2 <- "Difficulty level affects the response type, number of options, and the accuracy
-              of the machine learning model."
+txt_game2 <- "Below each image is a 'See information' button (easy and normal modes only) that 
+             displays metadata (e.g., title, medium) and a list of artists (easy = 3; normal = 4; 
+             hard = 5). Choose the artist that you think created the artwork. Once five artists have 
+             been chosen, a 'Confirm selections' button is displayed below." 
+             
+txt_game3 <- "Hit the button and both the model selections and correct answers will be 
+             shown under each artwork and a table of round and total scores will appear on
+             the right side of the screen. Press 'Next round' to generate five more artworks. Repeat 
+             until there is a winner or tie (based on the points to win selected) or 
+             click 'Reset game' to start over."
 
 
 

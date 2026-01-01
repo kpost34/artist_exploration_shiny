@@ -15,9 +15,9 @@ gameUI <- function(id) {
         accordion(
           accordion_panel(
             "Instructions",
-            p(txt_game1,
-            p(em(txt_game2))
-            )
+            p(txt_game1),
+            p(txt_game2),
+            p(txt_game3)
           ),
           open=FALSE,
           id="art_game_acc")
