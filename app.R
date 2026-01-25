@@ -57,33 +57,31 @@ artistExplorationApp <- function() {
     id="modNav",
   
     ### Classify Art Tab
-    tabPanel("Classifier", 
+    tabPanel(
+      span(icon("microscope"), strong("Classifier")), 
       div(class="page-wrapper",
         classifyUI("classify_mod"))
     ),
     
     ### Art Exploration Tab
-    tabPanel("Exploration",
+    tabPanel(
+      span(icon("compass"), strong("Exploration")),
       div(class="page-wrapper",
         exploreUI("explore_mod"))
     ),
     
     ### Game Tab
-    tabPanel("Game",
+    tabPanel(
+      span(icon("gamepad"), strong("Game")),
       div(class="page-wrapper",
         gameUI("game_mod"))
     ),
     
-    ### App Info
-    tabPanel("App Info",
+    ### About section
+    tabPanel(
+      span(icon("circle-info"), "About"),
       div(class="page-wrapper",
-        appInfoUI("app_info_mod"))
-    ),
-    
-    ### Developer Info Tab
-    tabPanel("Developer Info",
-      div(class="page-wrapper",
-        devInfoUI("dev_info_mod"))
+        aboutUI("about_mod"))
     )
   )
 
@@ -101,12 +99,8 @@ artistExplorationApp <- function() {
     gameServer("game_mod", mod=mod3)
     # gameServer("game_mod", mod=mod3, current_tab=reactive(input$modNav))
     
-    ### App Info
+    ### About
     #placeholder
-    
-    ### Developer Info
-    #placeholder
-    
     
   }
 

@@ -296,7 +296,4 @@ df_modal <- df_artist_info_public %>%
   set_names(labs_modal)
 
 
-
-
-
   
