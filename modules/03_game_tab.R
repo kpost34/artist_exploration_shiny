@@ -73,6 +73,11 @@ gameUI <- function(id) {
       column(6,
         textOutput(ns("txt_n_mod_correct"))
       )
+    ),
+    tags$hr(),
+    tags$footer(
+      style = "text-align: center; color: #777; font-size: 0.9em; padding: 10px;",
+      "Artwork provided by The Metropolitan Museum of Art. Open Access. Images courtesy of The Met."
     )
   )
 }
