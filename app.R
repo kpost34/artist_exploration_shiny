@@ -36,7 +36,7 @@ artistExplorationApp <- function() {
   ## UI
   ui <- navbarPage(
     #insert theme
-    theme=bslib::bs_theme(version=5),
+    theme=bslib::bs_theme(version=5, bootswatch="lux"),
     #thicker horizontal line & global page margins
     tags$head(
       tags$style(HTML("

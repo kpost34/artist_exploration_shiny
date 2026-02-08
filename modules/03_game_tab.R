@@ -201,7 +201,7 @@ gameServer <- function(id, mod) {
           output[[nm_image]] <- renderUI({
             tags$img(
               src = url,
-              style = "height: 200px; width: 100%; object-fit: contain; display: block; margin: 10px auto;",
+              style = "height: 200px; width: auto; max-width: 100%; display: block; margin-left: auto; margin-right: auto",
               alt = paste("Artwork", x)
             )
           })
@@ -225,11 +225,13 @@ gameServer <- function(id, mod) {
           
           #build ui
           output[[nm_output_btn]] <- renderUI({
-            #no modals on hard mode
             req(input$sldT_diff %in% c("easy", "normal"))
-            actionButton(ns(nm_input_btn),
-                         label="See information",
-                         class="btn-info")
+            
+            div(style = "text-align: center;",
+                actionButton(ns(nm_input_btn),
+                             label = "See information",
+                             class = "btn-info")
+            )
           })
         })
     })
