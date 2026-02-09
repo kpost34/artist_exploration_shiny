@@ -59,7 +59,7 @@ exploreUI <- function(id) {
       column(1),
       column(5,
         #carousel of artwork with caption below
-        slickROutput(ns("carousel_artwork"))
+        shinycssloaders::withSpinner(slickROutput(ns("carousel_artwork")))
       )
     )
   )

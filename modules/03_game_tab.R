@@ -298,8 +298,8 @@ gameServer <- function(id, mod) {
       
       #clear displayed answers & scores
       purrr::walk(1:5, function(x) {
-        output[[vec_mod_answers[x]]] <- renderUI({ NULL })
-        output[[vec_correct_answers[x]]] <- renderUI({ NULL })
+        output[[vec_mod_answers[x]]] <- renderUI({NULL})
+        output[[vec_correct_answers[x]]] <- renderUI({NULL})
       })
       
       #show difficulty selected & hide slider

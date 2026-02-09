@@ -4,7 +4,7 @@
 # Load Packages, Source Scripts, & Models===========================================================
 ## Load packages
 pacman:: p_load(shiny, shinyjs, bslib, here, tidyverse, janitor, DT, tidymodels, httr, shinyWidgets,
-                slickR, magick, e1071)
+                slickR, magick, e1071, shinycssloaders)
 
 
 ## Load functions and objects

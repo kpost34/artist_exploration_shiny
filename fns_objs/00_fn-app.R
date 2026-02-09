@@ -16,7 +16,9 @@ build_q_a_block <- function(id, n) {
   tagList(
     column(2,
       uiOutput(ns(nm["image"])),
+      br(),
       uiOutput(ns(nm["button"])),
+      br(),
       uiOutput(ns(nm["user_answer"])),
       uiOutput(ns(nm["mod_answer"])),
       uiOutput(ns(nm["correct_answer"]))
