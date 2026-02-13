@@ -10,4 +10,4 @@ This Shiny app includes three main components:
 
 The app is built using a modular design and retrieves images and metadata from [The Met’s public API](https://metmuseum.github.io/).
 
-**Note:** Development on this project is intermittent as I work on it alongside other commitments.
+**Note:** Development on this project was highly intermittent as I prioritized other commitments.
