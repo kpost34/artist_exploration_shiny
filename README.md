@@ -10,4 +10,12 @@ This Shiny app includes three main components:
 
 The app is built using a modular design and retrieves images and metadata from [The Met’s public API](https://metmuseum.github.io/).
 
+## App
++ [Shiny App](https://keithhpost.shinyapps.io/artist_exploration_shiny/) 
+
+#### **Project Creator: Keith Post**
++ [Github Profile](https://github.com/kpost34) 
++ [LinkedIN Profile](https://www.linkedin.com/in/keith-post/)
++ [Email](mailto:keithpost.kp@gmail.com)
+
 **Note:** Development on this project was highly intermittent as I prioritized other commitments.
