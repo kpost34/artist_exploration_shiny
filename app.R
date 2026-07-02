@@ -4,12 +4,11 @@
 # Load Packages, Source Scripts, & Models===========================================================
 ## Load packages
 pacman:: p_load(shiny, shinyjs, bslib, here, tidyverse, janitor, DT, tidymodels, httr, shinyWidgets,
-                slickR, magick, e1071, shinycssloaders)
+                slickR, magick, e1071, shinycssloaders, ranger)
 
 
 ## Load functions and objects
-here("fns_objs") %>%
-  list.files(full.names=TRUE) %>%
+list.files("fns_objs", full.names=TRUE) %>%
   purrr::map(source)
 
 
@@ -21,12 +20,12 @@ here("modules") %>%
 
 ## Load models
 ### Model 1
-fp_mod1 <- grab_newest_fp(here("models"), patt="01_")
+fp_mod1 <- grab_newest_fp("models", patt="01_")
 mod1 <- readRDS(fp_mod1)
 
 
 ### Model 3
-fp_mod3 <- grab_newest_fp(here("models"), patt="03_")
+fp_mod3 <- grab_newest_fp("models", patt="03_")
 mod3 <- readRDS(fp_mod3)
 
 

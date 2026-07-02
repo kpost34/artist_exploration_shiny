@@ -226,7 +226,7 @@ df_artist_bios <- tibble(
 
 ### Join artist info and bios with art info for complete df
 #### Read in art info (for public domain art)
-fp_art_explore <- grab_newest_fp(dir=here("data"), patt="^00_art-exploration")
+fp_art_explore <- grab_newest_fp(dir="data", patt="^00_art-exploration")
 
 df_artist_info0 <- readRDS(fp_art_explore) 
 df_artist_info_public <- df_artist_info0 %>%
@@ -260,7 +260,7 @@ df_art_info_public_full <- df_artist_info_public %>%
 
 # 03: Game==========================================================================================
 ## Read in clean, feature-extracted app data for game and model & pull in image_url
-fp_game <- grab_newest_fp(dir=here("data"),
+fp_game <- grab_newest_fp(dir="data",
                           patt="^03_app-feat_")
 
 df_game0 <- readRDS(fp_game)
